@@ -54,10 +54,26 @@ node scripts/build-client.mjs                                    # 产物：lib/
 - **面板的写操作不能走 `ctx.approval`**：该 seam 要求请求方处于未结束的轮次内，人在面板上的点击不满足。面板写操作用前端二次确认 + `allowTrigger`/`allowCancel` + `denyJobs` 守门；模型侧工具才走审批。
 - 客户端依赖只作 `devDependencies`（类型用，`import type` 擦除），`@deepseek-ai/dsh-*` 走 `peerDependencies`，绝不放进 `dependencies`（否则会把整棵 harness 拖进 profile）。`@deepseek-ai/schemastery` 是唯一运行时依赖。
 
+## 运行与验证环境（已探明，别再重新摸一遍）
+
+- **PATH 上没有 `dsh`**。CLI 就是已发布的 `@deepseek-ai/dsh@0.1.6-alpha.2`（bin `dsh` → `lib/bin.js`），本仓库的 peerDependencies 也钉在这个版本对齐。用 `npm i -g @deepseek-ai/dsh@0.1.6-alpha.2` 取得，或 `npx @deepseek-ai/dsh ...`。
+- **Harness 源码 checkout 在 `D:\deepseek-harness-master`**（只读参考）。写路由+信任守门时照抄 `packages/host/open-in-app/src/index.ts`。它的 `node_modules` 只有 `.pnpm`、未做链接，`pnpm dsh` 源码启动需先 `pnpm install`；能用已发布 CLI 就别走源码启动。
+- **桌面版的 harness home 是 `C:\Users\22206\AppData\Roaming\dsh-desktop\harness`**，其 `profiles/desktop` 由桌面壳独占，公开 CLI 不得管理。CLI 用自己的 home（默认 `~/.dsh`），互不影响。
+- **必须先配置再启动**：`baseUrl`/`username` 是 schema 必填，而 bundle 行本身不带配置。顺序只能是 `dsh plugin add` → 在 profile 的 `cordis.patch.yml` 补该行配置 → 再 boot。少了配置会在加载时失败并点名缺失字段（这是预期行为，不要改成静默跳过）。
+- **凭据来源**：`tokenRef` 默认 `JENKINS_TOKEN`，可从启动环境变量、`$DSH_HOME/.credentials.yaml`、启动目录 `.env` 或 `$DSH_HOME/.env` 解析。测试时直接给启动环境一个临时值即可；不给的话工具会报 `config` 类错误——这本身也是可测行为。
+- **无需真实 Jenkins 即可端到端验证**：起一个本地 stub（Node 原生 http，零依赖）回答 `/api/json?tree=jobs[name,url,color,_class]`、`/crumbIssuer/api/json`、`/<jobPath>/api/json`，把 `baseUrl` 指过去就能打通「安装 → 加载 → 面板渲染 → 路由取数 → Jenkins 调用」整条链路。这也正是 `tests/stub-jenkins.ts` 要做的事。
+
 ## 下一步
 
-1. `dsh plugin --profile <测试 profile> add D:\dsh-jenkins-plugin`，确认能加载；用 `dsh --profile <name> --dump-config` 看层。
-2. 起一个 dsh web，确认会话头部出现 Jenkins 按钮、点开能看到 job 列表（这是整条链路第一次端到端验证）。
-3. 补 `jenkins_build`（trigger/cancel，走审批）、`jenkins_build_status`（阶段+变更集+测试）、`jenkins_log`、`jenkins_workspace`。
-4. 跟踪表 + 轮询器（退避、无订阅者不轮询、只有选中构建拉日志）+ SSE 路由 + 右侧栏面板。
-5. 后台作业与完成通知、`notifyWakeOnFailure`、stub Jenkins 契约测试。
+目标：**先做一次端到端验证，再补功能**。当前唯一没被证实过的环节是「插件能否真的装进 profile 并渲染面板」。
+
+1. 起 stub Jenkins（见上），记下端口。
+2. `dsh --profile jenkins-test --from-default-profile web` 建测试 profile。
+3. `dsh plugin --profile jenkins-test add D:\dsh-jenkins-plugin`。
+4. 在 `$DSH_HOME/profiles/jenkins-test/cordis.patch.yml` 里给 `jenkins` 行补 `baseUrl`（指向 stub）、`username`；启动时带 `JENKINS_TOKEN=<任意值>`。
+5. `dsh --profile jenkins-test --dump-config` 确认 bundle 层出现了插件行。
+6. `dsh web --profile jenkins-test` 起来，打开页面，确认会话头部出现 Jenkins 按钮、点开能列出 stub 的 job。**这一步通过之前，不要往下写功能。**
+7. 通过后按顺序补：`jenkins_build`（trigger/cancel，走 `ctx.approval`）、`jenkins_build_status`（阶段+变更集+测试）、`jenkins_log`、`jenkins_workspace`。
+8. 跟踪表 + 轮询器（退避、无订阅者不轮询、只有选中构建拉日志）+ SSE 路由 + 右侧栏面板（`sidebar.right.pane.tab`）。
+9. 后台作业与完成通知、`notifyWakeOnFailure`、stub Jenkins 契约测试固化。
+
