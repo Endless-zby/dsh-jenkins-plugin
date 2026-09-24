@@ -1,0 +1,7 @@
+# dsh-jenkins-plugin bundle layer.
+#
+# The row is inserted with the plugin's shape; a profile's own cordis.patch.yml
+# can override this row by id, and the user's patch layer wins over this file.
+- insert:
+    - id: jenkins
+      name: dsh-jenkins-plugin
