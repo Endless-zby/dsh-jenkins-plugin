@@ -350,16 +350,32 @@ README 图片用**绝对 raw URL**（`https://raw.githubusercontent.com/<owner>/
 
 ### 发布进度（2026-10-08）
 
-- **仓库**：`Endless-zby/dsh-jenkins-plugin`（public，默认分支 `main`）。已 push 并核对过：
-  `main` 上有发布提交、`v0.1.0` tag 在、GitHub 识别到 MIT。`repository`/`homepage`/`bugs` 已指向它，
-  `LICENSE` 版权人 = `byzhao999`（= npm 账号）。
-  **还没做**：仓库 topic 加 `dsh-plugin`（市场爬虫靠它识别，最容易漏）；`doc/` 还没 push。
-- **npm**：**尚未发布**（两次 403，见上节）。卡在 token 档位——需要 **"Read and write"**，
-  不是 "Read and write (stage only)"。
-- **截图**：已进 README 的是 `doc/panel-favorites-2.png`（Stub CI；构建中/成功/不稳定/失败四态齐全）
-  与 `doc/settings-instances-1.png`（侧栏入口），引用写成**绝对 raw URL**。
-  真机那几张（`settings-instances.png`、`panel-drilldown-1.png`、`panel-drilldown-2.png`、
-  `panel-favorites-1.png`）**不要 push**——要么用 stub 重截同名文件覆盖，要么删掉。
+- **npm：`dsh-jenkins-plugin@0.1.0` 已发布**（2026-10-08T02:21:04Z，`dist-tags.latest = 0.1.0`，
+  54 个文件 / 558 027 字节，注册表带 `signatures`，README 里含安装命令）。
+  **发布成功后有几 minutes 的异步生成期**：packument 里已经有版本、`dist.tarball` 却是 404，
+  npm 会打印 `Your package is being processed and may take a few minutes to become available.`
+  ——**别在这几分钟内判断失败**（我差点去 unpublish 重发；而 unpublish 之后 24 小时内不能重发同一版本，
+  会白白浪费一个版本号）。判断依据是 `time['<version>']` 有没有出现，而不是 tarball 那一下的 404。
+- **新包名会先自动生成一个 `0.0.0-stage` 占位版本**（description 写着 "Temporary package placeholder
+  for staged publishing"）。这是 npm 的占名行为，`latest` 仍指向真正发布的版本，**不要试图删它**。
+- **三条 token 教训合起来才是直发**：`bypass_2fa: true` ＋ 权限档位 **"Read and write"**
+  （不是 "Read and write (stage only)"）。token 属性可以直接查，别靠反复试 publish：
+  `curl -sS -H "Authorization: Bearer $NPM_TOKEN" https://registry.npmjs.org/-/npm/v1/tokens`。
+- **"装到了发布的字节"要证明，不能假设**：先**删掉本地 `.tgz`**（否则 pnpm 会继续用 profile 里的
+  `file:` 依赖，输出看起来一切正常但其实根本没走注册表——踩过），再在新 profile 里按**包名**装，
+  最后比对 `pnpm-lock.yaml` 的 `resolution.integrity` 与注册表的 `dist.integrity` 是否一致。
+  实测：`sha512-iFwO3bBg…TraeMfQ==` 两边相同；随后 boot 该 profile，`/jenkins-plugin/state` → 401、
+  boot row 与 54 项的 tarball 都正常。
+- **仓库**：`Endless-zby/dsh-jenkins-plugin`（public，默认分支 `main`）。远端目前只到 `0885043`，
+  本地还领先 `b7fabdc`（README 截图）与 `70b59ea`（设置页截图）；`v0.1.0` 已移到 `70b59ea`，
+  推 tag 需要 `git push --force origin v0.1.0`（tag 是新键、无人引用，安全）。
+  **topic 仍是空的**——市场爬虫靠 `dsh-plugin` 识别，这一步没做等于没提交。
+- **截图**：`doc/panel-favorites-2.png`（四态卡片）、`doc/settings-instances-1.png`（侧栏入口）、
+  `doc/settings-instances.png`（Stub CI 的实例页 + 测试连接）已进 README。
+  **还缺两张 drilldown**：第一版用的是真机（job `ai-eval`：日志里有 `/data/jenkins/jobs/...` 绝对路径、
+  41 条内部提交信息、提交者账号），已挪到 `.e2e/leaky-screenshots/`。除了安全，**stub 那张还更好看**：
+  真机是 FreeStyle，阶段区只能显示"该 job 不是 Pipeline，Jenkins 不提供阶段信息"，而 stub 的
+  `team/service/api-build` 有完整阶段条。
 - 已知取舍：`github.com` 从这台机器不可达（curl 超时 / `git ls-remote` 挂住），只有
   `api.github.com` 通，所以**push 必须由人在自己的机器上做**；`.e2e/check-github.mjs` 用 API 核对
   远端状态（分支 / tag / topics / doc 目录）。
