@@ -44,7 +44,13 @@ That is permission for this package's code to run on your machine at install tim
 - **Following** — one card per followed job: state dot, build number, outcome tag, **live progress bar**, the running stage's name, the change description of the current build, and the Maven project version when the controller reports one. Cards are fed by an SSE stream, not by a polling page.
 - **All jobs** — collapsed by default; ☆/★ at the end of each row follows or unfollows it.
 
+![The two modules: following cards and the expanded job list with per-row follow buttons](https://raw.githubusercontent.com/Endless-zby/dsh-jenkins-plugin/main/doc/panel-favorites-1.png)
+
 Clicking a job or a card drills down without ever leaving the panel: build history (paged) → build detail (stage bar, embedded console log, test summary, change set, artifacts). Downloading an artifact is the only action that opens a Jenkins page.
+
+![A job's build history, with the parameter box and trigger control](https://raw.githubusercontent.com/Endless-zby/dsh-jenkins-plugin/main/doc/panel-drilldown-1.png)
+
+![One build: parameters, stage feedback, console log, test summary and change set](https://raw.githubusercontent.com/Endless-zby/dsh-jenkins-plugin/main/doc/panel-drilldown-2.png)
 
 **Writes** happen in the panel as *button → inline confirmation → run → result in place*:
 

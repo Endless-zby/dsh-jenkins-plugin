@@ -341,9 +341,19 @@ Maven groupId、绝对路径、提交者账号**。第一版实测就中了四�
 **折叠行的标题仍然明文显示内网 URL**；"测试连接"提示里有真人姓名；构建日志里有
 `com.<公司>.<产品>` 的 groupId 和 `/data/jenkins/jobs/...` 路径。
 
-结论：**截图只用 stub 实例**（`Stub CI` / `stub-user` / `team/service/*` 全是合成数据），
-而需要展示的状态（构建中 / 成功 / 不稳定 / 失败 / Maven 版本 / 变更说明）stub 全都有——
-真机截图没有任何信息增量，只有风险。
+**本仓库的现状（2026-10-08，仓库所有者决定）**：真机截图**照原样使用**，不做脱敏替换。
+审计出来的内容清单留档如下，唯一目的是"知道公开出去的东西里有什么"：
+
+- `doc/panel-favorites-1.png` —— 真机实例 + 部分内部 job 名（部分做了马赛克，`ai-eval` 等仍可读）
+- `doc/panel-drilldown-1.png` —— 真机 job `ai-eval` 的构建历史
+- `doc/panel-drilldown-2.png` —— 同一 job：日志里 `/data/jenkins/jobs/ai-eval/workspace/...` 绝对路径、
+  41 条内部提交信息（产品功能描述）、提交者账号 `diytz`
+- `doc/settings-instances-first.png` —— 第一版设置页（折叠行标题里的内网 URL、"测试连接"里的真人姓名）；
+  已被重截的 `settings-instances.png` 取代，仅留档
+
+要换成合成数据版的话，换的就是上面这四张：`Stub CI` 上构建中/成功/不稳定/失败、Maven 版本、
+变更说明全都有，重截成本很低（而且 stub 的 `team/service/api-build` 有完整阶段条，真机 FreeStyle
+只能显示"该 job 不是 Pipeline，Jenkins 不提供阶段信息"）。
 
 README 图片用**绝对 raw URL**（`https://raw.githubusercontent.com/<owner>/<repo>/main/doc/…`）：
 `files` 里不含 `doc/`，npm 包页面也不解析相对图片路径，写相对路径在 npm 上就是坏图。
@@ -370,12 +380,11 @@ README 图片用**绝对 raw URL**（`https://raw.githubusercontent.com/<owner>/
   本地还领先 `b7fabdc`（README 截图）与 `70b59ea`（设置页截图）；`v0.1.0` 已移到 `70b59ea`，
   推 tag 需要 `git push --force origin v0.1.0`（tag 是新键、无人引用，安全）。
   **topic 仍是空的**——市场爬虫靠 `dsh-plugin` 识别，这一步没做等于没提交。
-- **截图**：`doc/panel-favorites-2.png`（四态卡片）、`doc/settings-instances-1.png`（侧栏入口）、
-  `doc/settings-instances.png`（Stub CI 的实例页 + 测试连接）已进 README。
-  **还缺两张 drilldown**：第一版用的是真机（job `ai-eval`：日志里有 `/data/jenkins/jobs/...` 绝对路径、
-  41 条内部提交信息、提交者账号），已挪到 `.e2e/leaky-screenshots/`。除了安全，**stub 那张还更好看**：
-  真机是 FreeStyle，阶段区只能显示"该 job 不是 Pipeline，Jenkins 不提供阶段信息"，而 stub 的
-  `team/service/api-build` 有完整阶段条。
+- **截图**：README 用了 5 张，`doc/` 里另有 2 张留档 —— 见上节"README 截图必须先审计再提交"的清单。
+  真机那四张是仓库所有者的决定（照原样使用），我把审计结论留档、没有替换它们；
+  `settings-instances-first.png` 是第一版设置页，与重截后的 `settings-instances.png` 并存，避免丢内容。
+  注意 `README.md` 在 npm 包的 `files` 里，所以 **0.1.0 的 npm README 只包含发布那一刻引用的图片**；
+  后加的 drilldown/favorites-1 引用只出现在 GitHub 上，要让 npm 页面也显示它们就得发 0.1.1。
 - 已知取舍：`github.com` 从这台机器不可达（curl 超时 / `git ls-remote` 挂住），只有
   `api.github.com` 通，所以**push 必须由人在自己的机器上做**；`.e2e/check-github.mjs` 用 API 核对
   远端状态（分支 / tag / topics / doc 目录）。

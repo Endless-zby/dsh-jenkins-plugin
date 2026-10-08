@@ -44,7 +44,13 @@ allowBuilds:
 - **我关注的** —— 每个关注的 job 一张卡片：状态点、构建号、状态标签、**实时进度条**、当前阶段名、本次构建的变更说明、Maven 项目的版本号（构建结束后可取到时）。卡片直接来自 SSE 推送，不是轮询页面。
 - **所有 job** —— 默认折叠，展开后每行末尾的 ☆/★ 一键关注。
 
+![两个模块：关注卡片区 + 展开后的 job 列表（每行末尾有 ☆/★）](https://raw.githubusercontent.com/Endless-zby/dsh-jenkins-plugin/main/doc/panel-favorites-1.png)
+
 点 job 或卡片继续下钻，全程不跳出面板：构建历史（可翻页）→ 构建详情（阶段条、内嵌控制台日志、测试摘要、变更集、产物列表）。产物下载是唯一会打开 Jenkins 页面的动作。
+
+![某个 job 的构建历史，带参数框与触发构建](https://raw.githubusercontent.com/Endless-zby/dsh-jenkins-plugin/main/doc/panel-drilldown-1.png)
+
+![单次构建：参数、阶段反馈、控制台日志、测试摘要与变更集](https://raw.githubusercontent.com/Endless-zby/dsh-jenkins-plugin/main/doc/panel-drilldown-2.png)
 
 **写操作**都在面板内完成，并且是「按钮 → 行内二次确认 → 执行 → 就地显示结果」：
 
