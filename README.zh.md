@@ -4,7 +4,7 @@
 
 装完之后，你不再需要为了看一次构建进度而切到 Jenkins 页面：关注的 job 变成侧栏里的卡片，进度条实时走，构建结束发通知，失败了一键交给模型分析原因。
 
-![Jenkins 面板：正在跑的构建卡片带实时阶段进度、不稳定构建、失败构建的「重新构建 / 交给 AI 分析」](https://raw.githubusercontent.com/Endless-zby/dsh-jenkins-plugin/main/doc/panel-favorites-2.png)
+![Jenkins 面板：正在跑的构建卡片带实时阶段进度、不稳定构建、失败构建的「重新构建 / 交给 AI 分析」](https://cdn.jsdelivr.net/gh/Endless-zby/dsh-jenkins-plugin@main/doc/panel-favorites-2.png)
 
 ## 安装
 
@@ -16,7 +16,7 @@ dsh plugin --profile web add dsh-jenkins-plugin
 
 装完重启 `dsh web`，打开**设置 → Jenkins** 填一个实例（地址 + 账号 + 密码/API token），Save 之后右栏就会出现 **Jenkins** 面板。
 
-![Web 侧栏开始页上的 Jenkins 入口](https://raw.githubusercontent.com/Endless-zby/dsh-jenkins-plugin/main/doc/settings-instances-1.png)
+![Web 侧栏开始页上的 Jenkins 入口](https://cdn.jsdelivr.net/gh/Endless-zby/dsh-jenkins-plugin@main/doc/settings-instances-1.png)
 
 其他安装来源：
 
@@ -44,13 +44,13 @@ allowBuilds:
 - **我关注的** —— 每个关注的 job 一张卡片：状态点、构建号、状态标签、**实时进度条**、当前阶段名、本次构建的变更说明、Maven 项目的版本号（构建结束后可取到时）。卡片直接来自 SSE 推送，不是轮询页面。
 - **所有 job** —— 默认折叠，展开后每行末尾的 ☆/★ 一键关注。
 
-![两个模块：关注卡片区 + 展开后的 job 列表（每行末尾有 ☆/★）](https://raw.githubusercontent.com/Endless-zby/dsh-jenkins-plugin/main/doc/panel-favorites-1.png)
+![两个模块：关注卡片区 + 展开后的 job 列表（每行末尾有 ☆/★）](https://cdn.jsdelivr.net/gh/Endless-zby/dsh-jenkins-plugin@main/doc/panel-favorites-1.png)
 
 点 job 或卡片继续下钻，全程不跳出面板：构建历史（可翻页）→ 构建详情（阶段条、内嵌控制台日志、测试摘要、变更集、产物列表）。产物下载是唯一会打开 Jenkins 页面的动作。
 
-![某个 job 的构建历史，带参数框与触发构建](https://raw.githubusercontent.com/Endless-zby/dsh-jenkins-plugin/main/doc/panel-drilldown-1.png)
+![某个 job 的构建历史，带参数框与触发构建](https://cdn.jsdelivr.net/gh/Endless-zby/dsh-jenkins-plugin@main/doc/panel-drilldown-1.png)
 
-![单次构建：参数、阶段反馈、控制台日志、测试摘要与变更集](https://raw.githubusercontent.com/Endless-zby/dsh-jenkins-plugin/main/doc/panel-drilldown-2.png)
+![单次构建：参数、阶段反馈、控制台日志、测试摘要与变更集](https://cdn.jsdelivr.net/gh/Endless-zby/dsh-jenkins-plugin@main/doc/panel-drilldown-2.png)
 
 **写操作**都在面板内完成，并且是「按钮 → 行内二次确认 → 执行 → 就地显示结果」：
 
@@ -104,7 +104,7 @@ allowBuilds:
 
 静态配置只是**回退层**：面板设置页里配的实例优先，静态配置在没有面板设置时生效（实例 id 为 `config`）。`baseUrl`/`username` 可以留空——那正是"全部在面板里配"的用法。
 
-![Jenkins 设置页：多个实例、测试连接结果、保存](https://raw.githubusercontent.com/Endless-zby/dsh-jenkins-plugin/main/doc/settings-instances.png)
+![Jenkins 设置页：多个实例、测试连接结果、保存](https://cdn.jsdelivr.net/gh/Endless-zby/dsh-jenkins-plugin@main/doc/settings-instances.png)
 
 ```yaml
 - id: jenkins

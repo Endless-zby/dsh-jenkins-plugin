@@ -4,7 +4,7 @@ Jenkins integration for [DeepSeek Harness](https://github.com/deepseek-ai/deepse
 
 Once installed you stop switching to the Jenkins page to watch a build: the jobs you follow become cards in the sidebar with a live progress bar, a notice when a build finishes, and — when a build fails — one button that hands the failure to the model for a diagnosis.
 
-![The Jenkins panel: a running build's card with live stage progress, an unstable build, and failed builds offering rebuild and hand-to-AI](https://raw.githubusercontent.com/Endless-zby/dsh-jenkins-plugin/main/doc/panel-favorites-2.png)
+![The Jenkins panel: a running build's card with live stage progress, an unstable build, and failed builds offering rebuild and hand-to-AI](https://cdn.jsdelivr.net/gh/Endless-zby/dsh-jenkins-plugin@main/doc/panel-favorites-2.png)
 
 ## Install
 
@@ -16,7 +16,7 @@ dsh plugin --profile web add dsh-jenkins-plugin
 
 Restart `dsh web`, open **Settings → Jenkins**, add an instance (URL, account, password/API token) and save; the **Jenkins** panel then appears in the right sidebar.
 
-![The Jenkins entry on the Web sidebar's start page](https://raw.githubusercontent.com/Endless-zby/dsh-jenkins-plugin/main/doc/settings-instances-1.png)
+![The Jenkins entry on the Web sidebar's start page](https://cdn.jsdelivr.net/gh/Endless-zby/dsh-jenkins-plugin@main/doc/settings-instances-1.png)
 
 Other sources:
 
@@ -44,13 +44,13 @@ That is permission for this package's code to run on your machine at install tim
 - **Following** — one card per followed job: state dot, build number, outcome tag, **live progress bar**, the running stage's name, the change description of the current build, and the Maven project version when the controller reports one. Cards are fed by an SSE stream, not by a polling page.
 - **All jobs** — collapsed by default; ☆/★ at the end of each row follows or unfollows it.
 
-![The two modules: following cards and the expanded job list with per-row follow buttons](https://raw.githubusercontent.com/Endless-zby/dsh-jenkins-plugin/main/doc/panel-favorites-1.png)
+![The two modules: following cards and the expanded job list with per-row follow buttons](https://cdn.jsdelivr.net/gh/Endless-zby/dsh-jenkins-plugin@main/doc/panel-favorites-1.png)
 
 Clicking a job or a card drills down without ever leaving the panel: build history (paged) → build detail (stage bar, embedded console log, test summary, change set, artifacts). Downloading an artifact is the only action that opens a Jenkins page.
 
-![A job's build history, with the parameter box and trigger control](https://raw.githubusercontent.com/Endless-zby/dsh-jenkins-plugin/main/doc/panel-drilldown-1.png)
+![A job's build history, with the parameter box and trigger control](https://cdn.jsdelivr.net/gh/Endless-zby/dsh-jenkins-plugin@main/doc/panel-drilldown-1.png)
 
-![One build: parameters, stage feedback, console log, test summary and change set](https://raw.githubusercontent.com/Endless-zby/dsh-jenkins-plugin/main/doc/panel-drilldown-2.png)
+![One build: parameters, stage feedback, console log, test summary and change set](https://cdn.jsdelivr.net/gh/Endless-zby/dsh-jenkins-plugin@main/doc/panel-drilldown-2.png)
 
 **Writes** happen in the panel as *button → inline confirmation → run → result in place*:
 
@@ -104,7 +104,7 @@ Please take these as read before installing:
 
 Static configuration is only the **fallback layer**: instances configured in the settings page win, and static configuration applies when no panel settings exist (as an instance with id `config`). `baseUrl`/`username` may be left empty — that is exactly the "configure everything in the panel" setup.
 
-![The Jenkins settings page: several instances, test-connection result, save](https://raw.githubusercontent.com/Endless-zby/dsh-jenkins-plugin/main/doc/settings-instances.png)
+![The Jenkins settings page: several instances, test-connection result, save](https://cdn.jsdelivr.net/gh/Endless-zby/dsh-jenkins-plugin@main/doc/settings-instances.png)
 
 ```yaml
 - id: jenkins

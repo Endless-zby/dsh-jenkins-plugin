@@ -355,8 +355,14 @@ Maven groupId、绝对路径、提交者账号**。第一版实测就中了四�
 变更说明全都有，重截成本很低（而且 stub 的 `team/service/api-build` 有完整阶段条，真机 FreeStyle
 只能显示"该 job 不是 Pipeline，Jenkins 不提供阶段信息"）。
 
-README 图片用**绝对 raw URL**（`https://raw.githubusercontent.com/<owner>/<repo>/main/doc/…`）：
-`files` 里不含 `doc/`，npm 包页面也不解析相对图片路径，写相对路径在 npm 上就是坏图。
+README 图片必须用**绝对 URL**（相对路径会在两处各坏一次：npm 包页面不解析相对图片路径、市场站点
+按自己的域名解析它；`files` 里也不含 `doc/`），但**绝对不能用 `raw.githubusercontent.com`**：
+在国内网络实测 `raw.githubusercontent.com` 与 `github.com/<o>/<r>/raw/...` 都是 **000/超时
+（12 次请求 0 成功）**，`cdn.jsdelivr.net/gh/<owner>/<repo>@main/...` 是 **12/12**、
+`gcore.jsdelivr.net` 11/12。所以统一用
+`https://cdn.jsdelivr.net/gh/<owner>/<repo>@main/doc/<file>`，并且**预热缓存**：jsDelivr 第一次
+拉未缓存文件可能超时（实测出现过 000），连续请求到 200 之后对所有访客都很快——
+改完图片路径就顺手把 6 个 URL 各打一遍，别让市场的第一个访客替我们等冷启动。
 
 ### 发布进度（2026-10-08）
 
@@ -376,10 +382,11 @@ README 图片用**绝对 raw URL**（`https://raw.githubusercontent.com/<owner>/
   最后比对 `pnpm-lock.yaml` 的 `resolution.integrity` 与注册表的 `dist.integrity` 是否一致。
   实测：`sha512-iFwO3bBg…TraeMfQ==` 两边相同；随后 boot 该 profile，`/jenkins-plugin/state` → 401、
   boot row 与 54 项的 tarball 都正常。
-- **仓库**：`Endless-zby/dsh-jenkins-plugin`（public，默认分支 `main`）。远端目前只到 `0885043`，
-  本地还领先 `b7fabdc`（README 截图）与 `70b59ea`（设置页截图）；`v0.1.0` 已移到 `70b59ea`，
-  推 tag 需要 `git push --force origin v0.1.0`（tag 是新键、无人引用，安全）。
-  **topic 仍是空的**——市场爬虫靠 `dsh-plugin` 识别，这一步没做等于没提交。
+- **仓库 / 市场**：`Endless-zby/dsh-jenkins-plugin`（public，默认分支 `main`）。用
+  `.e2e/check-github.mjs`（走 `api.github.com`，因为 `github.com` 从这台机器不可达）核对过：
+  `main` 上有全部提交（最新 `b0d982f`）、`v0.1.0` tag 在、**`topics: ["dsh-plugin"]`**、
+  `doc/` 里 7 张图（字节数与本地一致）、License 识别为 MIT。市场收录的四个条件因此全部满足
+  （公开仓库 + topic + README 安装命令 + 导出 `apply(ctx)`），提交的 Issue 可以进入扫描周期。
 - **截图**：README 用了 5 张，`doc/` 里另有 2 张留档 —— 见上节"README 截图必须先审计再提交"的清单。
   真机那四张是仓库所有者的决定（照原样使用），我把审计结论留档、没有替换它们；
   `settings-instances-first.png` 是第一版设置页，与重截后的 `settings-instances.png` 并存，避免丢内容。
