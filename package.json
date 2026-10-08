@@ -75,6 +75,7 @@
     "check:secrets": "node scripts/check-secrets.mjs",
     "check:payload": "node scripts/check-payload.mjs",
     "check": "npm test && npm run build && npm run check:secrets && npm run check:payload",
+    "release:check": "node scripts/release-check.mjs",
     "prepare": "npm run build"
   },
   "dependencies": {

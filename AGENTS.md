@@ -281,6 +281,7 @@ job」每 1.5s 抛一次，后面所有构建（包括刚触发的排队项）**
 npm install --ignore-scripts --cache .npm-cache   # 见下方沙箱说明
 npm test                                         # tsc + node scripts/run-tests.mjs（8 个 tests/*.ts）
 npm run check                                    # test + build + 密钥扫描 + 打包内容审计
+npm run release:check                            # 发布前预检（见 RELEASING.md）
 node node_modules/typescript/bin/tsc -p tsconfig.json --noEmit   # 类型检查
 node node_modules/typescript/bin/tsc -p tsconfig.json            # 产物：lib/*.js + lib/**/*.d.ts
 node scripts/build-client.mjs                                    # 产物：lib/client.js
@@ -297,6 +298,10 @@ node scripts/build-client.mjs                                    # 产物：lib/
 3. **`execFile` 与 esbuild 的 JS API 都会失败**：前者内部建管道，后者用管道拉起常驻服务进程。可用的形式是 `spawn(..., { stdio: 'inherit' })` —— `scripts/build-client.mjs` 已按此实现，不要改回 JS API 或 `execFile`。
 
 ## 发布（npm + 社区插件市场）
+
+**可照做的步骤清单在 [RELEASING.md](RELEASING.md)**：一次性准备（token 档位与临时 npmrc）、
+跑闸 → 定版 → 预检 → 打包实测 → 发布 → 注册表复验 → push → 市场 → 收尾，每步都写了
+"怎么确认成功"和失败处置。本节只记录**结论和坑**，命令细节不在这里重复（避免两处漂移）。
 
 **两条渠道，别混为一谈**：官方只有一个发行渠道——npm registry / git 仓库 / `.tgz`，用户在
 **Plugins 页面**或 `dsh plugin add` 安装（`packages/boot/plugin-manager` 只认这四种 spec，源码里
@@ -343,9 +348,6 @@ Action 版本按 `releases/latest` 查出来钉当前大版本（`actions/checko
 README 顶部的 CI 徽章用 **img.shields.io**（实测 200；`github.com/.../badge.svg` 在国内常不可达），
 本地可以用 `.e2e/check-workflow.mjs` 先把 workflow 当 YAML 解析一遍并打印 step 列表——
 workflow 有语法错就永远不会触发，那种失败在 CI 页面上什么都看不到。
-
-发布顺序：`npm run check` → 提交并打 `v0.1.0` tag → 公开 GitHub 仓库并加 topic →（干净 profile 验证）
-→ `npm login && npm publish` → 用市场模板提交 → 收录后把徽章加进 README。
 
 ### npm 发布实测踩到的两个坑（都花过一整轮）
 

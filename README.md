@@ -158,7 +158,7 @@ Static configuration is only the **fallback layer**: instances configured in the
 ```sh
 npm install          # runs prepare (= build) once
 npm run typecheck
-npm test             # 235 assertions, no test framework: every tests/*.ts runs on its own
+npm test             # 292 assertions, no test framework: every tests/*.ts runs on its own
 npm run build        # tsc (Host half) + esbuild (browser half → lib/client.js)
 npm run check        # test + secret scan + packed-payload audit
 ```
@@ -167,13 +167,16 @@ The browser half is bundled into the client module system's lazy factory (`windo
 
 `tests/stub-jenkins.ts` is a zero-dependency stub Jenkins (`node tests/stub-jenkins.ts`) with stages, a failing build, a parameterized Maven job, write endpoints and a queue delay; it exercises the panel's live path and write path without touching a real controller.
 
-Three gates run before a release (and are what CI should run):
+Three gates run before a release (and are what CI runs):
 
 ```sh
 npm run check:secrets   # credential shapes in everything a commit would carry (private hostnames / user paths warn only)
 npm run check:payload   # reads npm pack's manifest: artifacts present, no src/ or internal notes shipped
 npm pack                # produce the tarball, install it into a clean profile, then publish
 ```
+
+Releasing is scripted end to end in [RELEASING.md](RELEASING.md) (`npm run release:check` is the
+pre-flight that refuses to reuse a version or a tag).
 
 ## License
 

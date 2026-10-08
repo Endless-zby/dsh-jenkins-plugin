@@ -158,7 +158,7 @@ allowBuilds:
 ```sh
 npm install          # 会跑一次 prepare（=构建）
 npm run typecheck
-npm test             # 235 项断言，无测试框架：每个 tests/*.ts 都是可直接运行的脚本
+npm test             # 292 项断言，无测试框架：每个 tests/*.ts 都是可直接运行的脚本
 npm run build        # tsc（Host 半）+ esbuild（浏览器半 → lib/client.js）
 npm run check        # test + 密钥扫描 + 打包内容审计
 ```
@@ -174,6 +174,9 @@ npm run check:secrets   # 扫"提交会带上的文件"里的凭据形状（内�
 npm run check:payload   # 读 npm pack 的清单：产物齐不齐、有没有把 src/ 或内部笔记打进去
 npm pack                # 出 tarball，先在一个干净 profile 上装一遍再 publish
 ```
+
+完整的发布步骤（含实测脚本、陷阱速查、以及"只有人能做的三件事"）见 [RELEASING.md](RELEASING.md)；
+`npm run release:check` 是发布前预检，会挡住重复使用版本号或 tag 这类事故。
 
 ## 许可证
 
