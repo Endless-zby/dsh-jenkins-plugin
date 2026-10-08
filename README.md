@@ -4,13 +4,7 @@ Jenkins integration for [DeepSeek Harness](https://github.com/deepseek-ai/deepse
 
 Once installed you stop switching to the Jenkins page to watch a build: the jobs you follow become cards in the sidebar with a live progress bar, a notice when a build finishes, and — when a build fails — one button that hands the failure to the model for a diagnosis.
 
-<!--
-Screenshots are the marketplace's "visible proof" item. Add them here, for example:
-
-![The Jenkins panel: favourite cards with live progress](docs/panel-favorites.png)
-![A failed build's card, with rebuild and hand-to-AI](docs/panel-failed.png)
-![The Jenkins settings page: instances, probe, save](docs/settings-instances.png)
--->
+![The Jenkins panel: a running build's card with live stage progress, an unstable build, and failed builds offering rebuild and hand-to-AI](https://raw.githubusercontent.com/Endless-zby/dsh-jenkins-plugin/main/doc/panel-favorites-2.png)
 
 ## Install
 
@@ -21,6 +15,8 @@ dsh plugin --profile web add dsh-jenkins-plugin
 ```
 
 Restart `dsh web`, open **Settings → Jenkins**, add an instance (URL, account, password/API token) and save; the **Jenkins** panel then appears in the right sidebar.
+
+![The Jenkins entry on the Web sidebar's start page](https://raw.githubusercontent.com/Endless-zby/dsh-jenkins-plugin/main/doc/settings-instances-1.png)
 
 Other sources:
 

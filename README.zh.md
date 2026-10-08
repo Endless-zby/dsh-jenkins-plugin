@@ -4,13 +4,7 @@
 
 装完之后，你不再需要为了看一次构建进度而切到 Jenkins 页面：关注的 job 变成侧栏里的卡片，进度条实时走，构建结束发通知，失败了一键交给模型分析原因。
 
-<!--
-Screenshots are the marketplace's "visible proof" item. Add them here, for example:
-
-![The Jenkins panel: favourite cards with live progress](docs/panel-favorites.png)
-![A failed build's card, with rebuild and hand-to-AI](docs/panel-failed.png)
-![The Jenkins settings page: instances, probe, save](docs/settings-instances.png)
--->
+![Jenkins 面板：正在跑的构建卡片带实时阶段进度、不稳定构建、失败构建的「重新构建 / 交给 AI 分析」](https://raw.githubusercontent.com/Endless-zby/dsh-jenkins-plugin/main/doc/panel-favorites-2.png)
 
 ## 安装
 
@@ -21,6 +15,8 @@ dsh plugin --profile web add dsh-jenkins-plugin
 ```
 
 装完重启 `dsh web`，打开**设置 → Jenkins** 填一个实例（地址 + 账号 + 密码/API token），Save 之后右栏就会出现 **Jenkins** 面板。
+
+![Web 侧栏开始页上的 Jenkins 入口](https://raw.githubusercontent.com/Endless-zby/dsh-jenkins-plugin/main/doc/settings-instances-1.png)
 
 其他安装来源：
 

@@ -309,13 +309,60 @@ npm pack                 # 出 tarball，先在一个干净 profile 上按 READM
 发布顺序：`npm run check` → 提交并打 `v0.1.0` tag → 公开 GitHub 仓库并加 topic →（干净 profile 验证）
 → `npm login && npm publish` → 用市场模板提交 → 收录后把徽章加进 README。
 
-**还需要人拍板/提供的东西**（当前仓库里故意留空，别自己编）：
+### npm 发布实测踩到的两个坑（都花过一整轮）
 
-- GitHub `owner/repo`：`package.json` 的 `repository`/`homepage`/`bugs` 和 README 的仓库链接都要它。
-- 截图：市场的检查清单要求"可见的证明"，README 里 `docs/panel-*.png` 的引用目前是注释掉的占位。
-- `LICENSE` 的版权人目前写的是 `dsh-jenkins-plugin contributors`，要换成真人/组织就改这一行。
-- 仓库公开范围已定：`AGENTS.md` 与 `SPEC.md` 都随仓库公开，但**内网主机名与个人路径已脱敏**
-  （`check:secrets` 会对这两类再 WARN 一次；真正要挡住的是凭据形状，那一类是 FAIL）。
+1. **账号开了 2FA 时，token 必须勾 "Bypass 2FA"**，否则 `npm publish` 直接 403：
+   `Two-factor authentication or granular access token with bypass 2fa enabled is required to publish packages.`
+   （第一个 token 的 `bypass_2fa: false`，权限其实没问题——`package: write`、全包、有效期正常。）
+2. **勾了 Bypass 2FA 还不够，权限档位要对**：npm 的 granular token 现在三档，选成
+   **"Read and write (stage only)"** 就只能 `npm stage publish` + 人在网页上带 2FA 批准，
+   直接 `npm publish` 报 **`E_STAGE_REQUIRED`**：
+   `this token can only publish to a staging area, and "dsh-jenkins-plugin" does not exist yet.`
+   ——**新包无法用 staged 流程引导**（staged-only 是 2026-09 才有的可选项，默认不开；
+   npm 计划 2027-01 才取消 bypass-2FA token 的直发）。要的是中间的 **"Read and write"**。
+   附带事实：本机 npm **11.13.0 没有 `npm stage` 命令**（staged publishing 要求 CLI ≥ 11.15.0、
+   Node ≥ 22.14），所以 staged 路线还得先升 npm。
+
+**别反复试 publish，先查 token 属性**（token 本身被打码，能看到关键字段）：
+
+```sh
+curl -sS -H "Authorization: Bearer $NPM_TOKEN" https://registry.npmjs.org/-/npm/v1/tokens
+# → bypass_2fa / permissions[].action / scopes / expiry
+```
+
+凭据不进任何文件：临时 `.npmrc` 写在工作区外，内容只有
+`//registry.npmjs.org/:_authToken=${NPM_TOKEN}`，token 只经**进程环境变量**传入。
+注意 npm 的 ini 解析**不认 `//` 开头的注释**——它会把注释当配置键并告警，注释要用 `;` 或 `#`。
+
+### README 截图必须先审计再提交
+
+市场检查清单要"可见的证明"，但真机截图会连带泄漏**内网地址、真实姓名/账号、内部 job 与工程名、
+Maven groupId、绝对路径、提交者账号**。第一版实测就中了四处：输入框被手动打码了，但
+**折叠行的标题仍然明文显示内网 URL**；"测试连接"提示里有真人姓名；构建日志里有
+`com.<公司>.<产品>` 的 groupId 和 `/data/jenkins/jobs/...` 路径。
+
+结论：**截图只用 stub 实例**（`Stub CI` / `stub-user` / `team/service/*` 全是合成数据），
+而需要展示的状态（构建中 / 成功 / 不稳定 / 失败 / Maven 版本 / 变更说明）stub 全都有——
+真机截图没有任何信息增量，只有风险。
+
+README 图片用**绝对 raw URL**（`https://raw.githubusercontent.com/<owner>/<repo>/main/doc/…`）：
+`files` 里不含 `doc/`，npm 包页面也不解析相对图片路径，写相对路径在 npm 上就是坏图。
+
+### 发布进度（2026-10-08）
+
+- **仓库**：`Endless-zby/dsh-jenkins-plugin`（public，默认分支 `main`）。已 push 并核对过：
+  `main` 上有发布提交、`v0.1.0` tag 在、GitHub 识别到 MIT。`repository`/`homepage`/`bugs` 已指向它，
+  `LICENSE` 版权人 = `byzhao999`（= npm 账号）。
+  **还没做**：仓库 topic 加 `dsh-plugin`（市场爬虫靠它识别，最容易漏）；`doc/` 还没 push。
+- **npm**：**尚未发布**（两次 403，见上节）。卡在 token 档位——需要 **"Read and write"**，
+  不是 "Read and write (stage only)"。
+- **截图**：已进 README 的是 `doc/panel-favorites-2.png`（Stub CI；构建中/成功/不稳定/失败四态齐全）
+  与 `doc/settings-instances-1.png`（侧栏入口），引用写成**绝对 raw URL**。
+  真机那几张（`settings-instances.png`、`panel-drilldown-1.png`、`panel-drilldown-2.png`、
+  `panel-favorites-1.png`）**不要 push**——要么用 stub 重截同名文件覆盖，要么删掉。
+- 已知取舍：`github.com` 从这台机器不可达（curl 超时 / `git ls-remote` 挂住），只有
+  `api.github.com` 通，所以**push 必须由人在自己的机器上做**；`.e2e/check-github.mjs` 用 API 核对
+  远端状态（分支 / tag / topics / doc 目录）。
 
 ## 工程约定
 
