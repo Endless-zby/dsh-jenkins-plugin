@@ -3,3 +3,18 @@ lib/
 .npm-cache/
 *.tsbuildinfo
 *.tgz
+
+# Local secrets and per-machine state: never committed, never published.
+.env
+.env.*
+!.env.example
+credentials*.json
+jenkins.json
+
+# Editor/OS noise.
+.DS_Store
+Thumbs.db
+
+# Local end-to-end harness: the CLI install used for verification, its isolated
+# DSH_HOME, and the throwaway jenkins-test profile. Never published.
+.e2e/

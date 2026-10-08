@@ -9,12 +9,20 @@ import z from '@deepseek-ai/schemastery'
 
 /** Resolved configuration accepted by the Jenkins plugin. */
 export interface Config {
-  /** Jenkins root URL, for example `https://ci.example.com/jenkins`. */
+  /**
+   * Jenkins root URL, for example `https://ci.example.com/jenkins`.
+   *
+   * Optional because the panel can supply it at runtime; when both are present
+   * the panel's value wins. An empty value with no panel settings leaves the
+   * plugin unconfigured, which the panel renders as its setup form.
+   */
   baseUrl: string
-  /** Login name paired with the API token. */
+  /** Login name paired with the API token; the panel's value wins when set. */
   username: string
   /** `ctx.credentials` reference holding the API token. */
   tokenRef: string
+  /** Panel-owned settings file: an absolute path, or a name under the harness home. */
+  settingsFile: string
   /** `verify` validates the server certificate; `allowSelfSigned` accepts an untrusted one. */
   tlsMode: 'verify' | 'allowSelfSigned'
   /** PEM bundle used to validate the server certificate under `verify`. */
@@ -45,6 +53,17 @@ export interface Config {
   historyCount: number
   /** Byte cap on one console-log response. */
   maxLogBytes: number
+  /**
+   * Byte cap on the console-log body read from the controller.
+   *
+   * Separate from {@link maxLogBytes} because the two bound different things: a
+   * controller that ignores `?start=` forces a start-to-end read, so a small
+   * returned page would otherwise be taken from the log's *head* rather than its
+   * tail. This must stay comfortably above {@link maxLogBytes}.
+   */
+  logReadBytes: number
+  /** Byte cap on one folder-listing response of the recursive job walk. */
+  maxListingBytes: number
   /** Entry cap on one workspace directory listing. */
   maxWorkspaceEntries: number
   /** Byte cap on one workspace file read. */
@@ -53,15 +72,20 @@ export interface Config {
   notifyOnComplete: boolean
   /** Whether a failed build wakes the owning agent with a follow-up message. */
   notifyWakeOnFailure: boolean
+  /** Whether the panel may hand a failed build to the model for analysis. */
+  allowAnalyze: boolean
+  /** Console-log bytes handed to the model when it analyses a failure. */
+  analyzeLogBytes: number
   /** Whether triggering a build opens the panel on its own. */
   uiAutoOpenOnTrigger: boolean
 }
 
 /** Validated schema for {@link Config}; invalid configuration fails plugin load. */
 export const Config: z<Config> = z.object({
-  baseUrl: z.string().required(),
-  username: z.string().required(),
+  baseUrl: z.string().default(''),
+  username: z.string().default(''),
   tokenRef: z.string().default('JENKINS_TOKEN'),
+  settingsFile: z.string().default('jenkins.json'),
   tlsMode: z.union(['verify', 'allowSelfSigned'] as const).default('verify'),
   tlsCaFile: z.string(),
   timeoutMs: z.number().min(1).default(15_000),
@@ -77,10 +101,14 @@ export const Config: z<Config> = z.object({
   retainMs: z.number().min(0).default(600_000),
   historyCount: z.number().min(1).max(50).default(10),
   maxLogBytes: z.number().min(1024).default(262_144),
+  logReadBytes: z.number().min(4096).default(8_388_608),
+  maxListingBytes: z.number().min(4096).default(4_194_304),
   maxWorkspaceEntries: z.number().min(1).default(500),
   maxReadFileBytes: z.number().min(1).default(1_048_576),
   notifyOnComplete: z.boolean().default(true),
   notifyWakeOnFailure: z.boolean().default(false),
+  allowAnalyze: z.boolean().default(true),
+  analyzeLogBytes: z.number().min(1024).default(16_384),
   uiAutoOpenOnTrigger: z.boolean().default(true),
 })
 

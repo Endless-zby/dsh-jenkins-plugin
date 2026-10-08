@@ -1,0 +1,14 @@
+# Normalize line endings on checkout/commit: LF in the repository, whatever the
+# platform needs in the working tree. Keeps diffs and the published tarball
+# stable across Windows, macOS, and Linux contributors.
+* text=auto eol=lf
+
+# Windows command shims must keep CRLF to run.
+*.cmd text eol=crlf
+*.bat text eol=crlf
+
+# Binary assets are never normalized.
+*.png binary
+*.jpg binary
+*.webp binary
+*.gif binary

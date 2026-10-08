@@ -1,10 +1,28 @@
 {
   "name": "dsh-jenkins-plugin",
   "version": "0.1.0",
-  "private": true,
-  "description": "Jenkins integration for DeepSeek Harness: live build-progress panel, workspace browsing, and model-facing build tools",
+  "description": "Jenkins integration for DeepSeek Harness: a live build-progress panel in the Web GUI plus model-facing tools for triggering builds, reading stages and console logs, and browsing a build's workspace",
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "deepseek",
+    "deepseek-harness",
+    "jenkins",
+    "ci",
+    "build-monitor",
+    "llm-plugin"
+  ],
   "type": "module",
   "license": "MIT",
+  "author": "byzhao999",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Endless-zby/dsh-jenkins-plugin.git"
+  },
+  "homepage": "https://github.com/Endless-zby/dsh-jenkins-plugin#readme",
+  "bugs": {
+    "url": "https://github.com/Endless-zby/dsh-jenkins-plugin/issues"
+  },
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
   "exports": {
@@ -23,20 +41,41 @@
     "lib/**/*.js",
     "lib/**/*.d.ts",
     "cordis.patch.yml",
-    "README.md"
+    "README.md",
+    "README.zh.md",
+    "LICENSE"
   ],
   "dsh": {
     "bundle": {
       "patch": "./cordis.patch.yml"
     },
     "client": {
-      "platform": "web"
+      "platform": "web",
+      "inject": [
+        "@deepseek-ai/dsh-client-locale",
+        "@deepseek-ai/dsh-client-ui-conversation",
+        "@deepseek-ai/dsh-client-ui-session",
+        "@deepseek-ai/dsh-client-ui-settings",
+        "@deepseek-ai/dsh-client-ui-sidebar-right"
+      ]
     }
+  },
+  "engines": {
+    "node": "^22.19.0 || >=24.0.0",
+    "dsh": "0.1.6-alpha.2"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json && node scripts/build-client.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "clean": "node -e \"require('node:fs').rmSync('lib',{recursive:true,force:true})\""
+    "test": "tsc -p tsconfig.json && node scripts/run-tests.mjs",
+    "clean": "node -e \"require('node:fs').rmSync('lib',{recursive:true,force:true})\"",
+    "check:secrets": "node scripts/check-secrets.mjs",
+    "check:payload": "node scripts/check-payload.mjs",
+    "check": "npm test && npm run build && npm run check:secrets && npm run check:payload",
+    "prepare": "npm run build"
   },
   "dependencies": {
     "@deepseek-ai/schemastery": "^3.18.2"
@@ -45,18 +84,28 @@
     "@deepseek-ai/cordis": "^4.0.2",
     "@deepseek-ai/dsh-credentials": "0.1.6-alpha.2",
     "@deepseek-ai/dsh-host-webserver": "0.1.6-alpha.2",
+    "@deepseek-ai/dsh-llm": "0.1.6-alpha.2",
     "@deepseek-ai/dsh-tools": "0.1.6-alpha.2"
   },
   "devDependencies": {
     "@deepseek-ai/cordis": "4.0.2",
+    "@deepseek-ai/dsh-client-locale": "^0.1.6-alpha.2",
     "@deepseek-ai/dsh-client-ui-conversation": "0.1.6-alpha.2",
+    "@deepseek-ai/dsh-client-ui-dockkit": "^0.1.6-alpha.2",
+    "@deepseek-ai/dsh-client-ui-layout": "^0.1.6-alpha.2",
+    "@deepseek-ai/dsh-client-ui-primitives": "^0.1.6-alpha.2",
     "@deepseek-ai/dsh-client-ui-renderer": "0.1.6-alpha.2",
+    "@deepseek-ai/dsh-client-ui-session": "^0.1.6-alpha.2",
+    "@deepseek-ai/dsh-client-ui-settings": "^0.1.6-alpha.2",
+    "@deepseek-ai/dsh-client-ui-sidebar-right": "^0.1.6-alpha.2",
     "@deepseek-ai/dsh-client-ui-slots": "0.1.6-alpha.2",
     "@deepseek-ai/dsh-credentials": "0.1.6-alpha.2",
     "@deepseek-ai/dsh-host-webserver": "0.1.6-alpha.2",
+    "@deepseek-ai/dsh-llm": "0.1.6-alpha.2",
     "@deepseek-ai/dsh-tools": "0.1.6-alpha.2",
     "@types/node": "^24.0.0",
     "@types/react": "^19.0.0",
+    "clsx": "^2.1.1",
     "esbuild": "^0.25.0",
     "react": "^19.0.0",
     "typescript": "^5.9.0"
