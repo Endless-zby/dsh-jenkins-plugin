@@ -1,6 +1,6 @@
 {
   "name": "dsh-jenkins-plugin",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Jenkins integration for DeepSeek Harness: a live build-progress panel in the Web GUI plus model-facing tools for triggering builds, reading stages and console logs, and browsing a build's workspace",
   "keywords": [
     "dsh",
