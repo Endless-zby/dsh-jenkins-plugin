@@ -98,6 +98,8 @@ allowBuilds:
 
 静态配置只是**回退层**：面板设置页里配的实例优先，静态配置在没有面板设置时生效（实例 id 为 `config`）。`baseUrl`/`username` 可以留空——那正是"全部在面板里配"的用法。
 
+![Jenkins 设置页：多个实例、测试连接结果、保存](https://raw.githubusercontent.com/Endless-zby/dsh-jenkins-plugin/main/doc/settings-instances.png)
+
 ```yaml
 - id: jenkins
   name: dsh-jenkins-plugin

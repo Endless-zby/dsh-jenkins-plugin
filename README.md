@@ -98,6 +98,8 @@ Please take these as read before installing:
 
 Static configuration is only the **fallback layer**: instances configured in the settings page win, and static configuration applies when no panel settings exist (as an instance with id `config`). `baseUrl`/`username` may be left empty — that is exactly the "configure everything in the panel" setup.
 
+![The Jenkins settings page: several instances, test-connection result, save](https://raw.githubusercontent.com/Endless-zby/dsh-jenkins-plugin/main/doc/settings-instances.png)
+
 ```yaml
 - id: jenkins
   name: dsh-jenkins-plugin
