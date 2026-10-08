@@ -47,6 +47,16 @@ export interface FavoriteJob {
   name: string
   /** When it was favorited, epoch milliseconds. */
   addedAt: number
+  /**
+   * Session that followed this job, when the panel knew one.
+   *
+   * This is what makes a failure wake go to the right conversation: the person
+   * who followed the job is the person who wants to hear that it broke, and the
+   * watcher is unowned background work that cannot infer that from anywhere else.
+   * Favorites stored before this field existed have none, and those stay silent
+   * rather than guessing an owner.
+   */
+  sessionId?: string
 }
 
 /** The whole persisted configuration. */
@@ -138,7 +148,8 @@ function parseFavorite(value: unknown): FavoriteJob | undefined {
   const addedAt = typeof (value as { addedAt?: unknown }).addedAt === 'number'
     ? (value as { addedAt: number }).addedAt
     : 0
-  return { path, name, addedAt }
+  const sessionId = stringField(value, 'sessionId')
+  return { path, name, addedAt, ...sessionId === undefined ? {} : { sessionId } }
 }
 
 /**

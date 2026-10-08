@@ -77,6 +77,8 @@ Jobs on `denyJobs` are refused whatever the switches say, and **not a single req
 
 **Completion notices**: a followed job's finished build is announced once through the platform's own background-job mechanism; the same build is never announced twice.
 
+**Failure wake** (`notifyWakeOnFailure`, off by default): when a *followed* job fails, the conversation it was followed from gets the failure handed to it — the same log tail, stage and commits the button sends — so the model can explain it without anyone watching the build list. The favorite remembers which session followed it, so the answer lands where the person is. Only a real failure wakes anyone (`unstable` and `aborted` do not), each build wakes at most once, and a session that has closed is skipped silently. `allowAnalyze: false` turns it off too, since it sends the same log.
+
 ## Permissions and risks
 
 Please take these as read before installing:
@@ -98,7 +100,7 @@ Please take these as read before installing:
   - **Workspace reads** need the Jenkins Workspace API plugin; without it `jenkins_workspace` says so instead of pretending.
   - **Maven versions** come from `mavenArtifacts/api/json`, which only Maven jobs answer — and on a real 2.176.2 it is usually produced when the build *ends*, so a running Maven build's card may have no version. When there is none, nothing is shown; a version is never guessed.
   - **Artifacts carry no size**: Jenkins' `tree` query cannot fetch artifact sizes.
-- **Not finished yet**: `notifyWakeOnFailure` (wake the model when a build fails) and `uiAutoOpenOnTrigger` (open the panel on trigger) are accepted but **not active**; `maxTrackedBuilds` is advisory only — the followed list is the user's own choice, so nothing is hard-capped.
+- **Not finished yet**: `uiAutoOpenOnTrigger` (open the panel on trigger) is accepted but **not active**; `maxTrackedBuilds` is advisory only — the followed list is the user's own choice, so nothing is hard-capped.
 
 ## Configuration
 
@@ -142,7 +144,7 @@ Static configuration is only the **fallback layer**: instances configured in the
 | `maxWorkspaceEntries` | `500` | entry cap on one workspace directory listing |
 | `maxReadFileBytes` | `1048576` | byte cap on one workspace file read |
 | `notifyOnComplete` | `true` | announce a followed build when it finishes |
-| `notifyWakeOnFailure` | `false` | wake the model on failure (**not active yet**) |
+| `notifyWakeOnFailure` | `false` | hand a failed followed build to the session that followed it |
 | `allowAnalyze` | `true` | allow handing a failed build to the model |
 | `analyzeLogBytes` | `16384` | log-tail bytes handed to the model |
 | `uiAutoOpenOnTrigger` | `true` | open the panel on trigger (**not active yet**) |

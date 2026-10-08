@@ -21,12 +21,12 @@
 
 import type { Context } from '@deepseek-ai/cordis'
 import type { IncomingMessage, ServerResponse } from 'node:http'
-import { createUserMessage } from '@deepseek-ai/dsh-llm'
 import { credentialRef } from '@deepseek-ai/dsh-credentials'
 import { analysisKey, handOverFailure } from './analyze.js'
 import type { Config } from './config.js'
 import { InstanceUnavailable } from './connection.js'
 import type { InstanceRegistry } from './connection.js'
+import { followupFor } from './handoff.js'
 import { JenkinsClient, JenkinsError } from './jenkins/client.js'
 import { buildProgress } from './jenkins/types.js'
 import type { JenkinsBuildProgress, JenkinsJobRef } from './jenkins/types.js'
@@ -124,16 +124,6 @@ const mavenVersions = new Map<string, string | undefined>()
 /** Browser request-trust surface the Web composition provides. */
 interface BrowserTrust {
   requestRejection(request: { readonly headers: IncomingMessage['headers'] }): 401 | 403 | undefined
-}
-
-/** The slice of the composition's agent registry this route uses. */
-interface AgentService {
-  /**
-   * The live agent for one session.
-   * @param sessionId - durable session identity.
-   * @returns the agent, or undefined when that session has none attached.
-   */
-  get(sessionId: string): { followup(message: unknown): void } | undefined
 }
 
 /**
@@ -717,6 +707,11 @@ export function registerJenkinsRoutes(
           ? record.name.trim()
           : jobPath.split('/').at(-1) ?? jobPath
         const instanceId = typeof record.instance === 'string' ? record.instance : undefined
+        // Recorded so a failure of this job can wake the conversation it was
+        // followed from; the panel sends the session it is rendering.
+        const sessionId = typeof record.session === 'string' && record.session.trim().length > 0
+          ? record.session.trim()
+          : undefined
         const resolved = await registry.require(instanceId)
         // Verified before it is stored: favoriting a path that does not exist
         // would produce a card that can never resolve.
@@ -731,7 +726,7 @@ export function registerJenkinsRoutes(
             return
           }
         }
-        const favorites = await registry.setFavorite(resolved.instance.id, jobPath, name, favorited)
+        const favorites = await registry.setFavorite(resolved.instance.id, jobPath, name, favorited, sessionId)
         sendJson(res, { ok: true, instanceId: resolved.instance.id, favorites })
       } catch (error) {
         sendFailure(res, error)
@@ -881,8 +876,8 @@ export function registerJenkinsRoutes(
           }, 403)
           return
         }
-        const agents = ctx.get('agents') as AgentService | undefined
-        if (agents === undefined) {
+        const sink = followupFor(ctx, sessionId)
+        if (sink.kind === 'no-service') {
           sendJson(res, {
             ok: false,
             code: 'unavailable',
@@ -890,8 +885,7 @@ export function registerJenkinsRoutes(
           }, 503)
           return
         }
-        const agent = agents.get(sessionId)
-        if (agent === undefined) {
+        if (sink.kind === 'no-session') {
           sendJson(res, {
             ok: false,
             code: 'no-session',
@@ -921,15 +915,10 @@ export function registerJenkinsRoutes(
             buildNumber,
             logBytes: config.analyzeLogBytes,
             instanceName: resolved.instance.name,
-            // The message factory lives here rather than in the hand-off, so the
-            // hand-off stays a pure decision about *what* to say and this stays
-            // the plumbing that says it in this composition's session.
-            followup: (prompt) => {
-              agent.followup(createUserMessage({
-                content: [{ type: 'text', text: prompt }],
-                source: { kind: 'plugin', plugin: 'jenkins-plugin' },
-              }))
-            },
+            // The hand-off stays a pure decision about *what* to say; the sink
+            // that says it in this composition's session is `handoff.ts`, shared
+            // with the failure watcher.
+            followup: sink.followup,
           })
           sendJson(res, {
             ok: true,

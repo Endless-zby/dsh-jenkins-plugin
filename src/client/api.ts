@@ -291,16 +291,28 @@ export async function fetchFavorites(instanceId?: string): Promise<FavoritesPayl
   return await request<FavoritesPayload>(`/jenkins-plugin/favorites${query}`)
 }
 
-/** Add or remove one favorite. */
+/**
+ * Add or remove one favorite.
+ *
+ * The session is sent so the host can remember who followed the job: that is
+ * where a failure wake goes, and the watcher has no other way to know it.
+ * @param instanceId - the instance the job belongs to.
+ * @param path - job path.
+ * @param name - display name to record.
+ * @param favorited - the desired state.
+ * @param sessionId - the conversation following it, when the panel knows one.
+ * @returns the instance's favorites after the change, or a failure.
+ */
 export async function toggleFavorite(
   instanceId: string,
   path: string,
   name: string,
   favorited: boolean,
+  sessionId?: string,
 ): Promise<{ ok: true, instanceId: string, favorites: FavoriteRow[] } | ApiFailure> {
   return await request('/jenkins-plugin/favorites/toggle', {
     method: 'POST',
-    body: { instance: instanceId, path, name, favorited },
+    body: { instance: instanceId, path, name, favorited, ...sessionId === undefined ? {} : { session: sessionId } },
   })
 }
 

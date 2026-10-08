@@ -77,6 +77,8 @@ allowBuilds:
 
 **完成通知**：关注的 job 一有构建结束就用平台的后台作业机制发一次通知，同一次构建只通知一次。
 
+**失败唤醒**（`notifyWakeOnFailure`，默认关）：**关注的** job 一旦失败，就把它交给「你当初关注它的那个会话」——发的是和按钮相同的那份日志尾部、失败阶段与提交，所以模型能在没人盯着构建列表的时候先说明原因，答案出现在你正在读的对话里。关注项记着是哪个会话关注的，所以通知不会跑错地方。只有真正的失败才唤醒（`unstable`、`aborted` 不算），同一次构建最多唤醒一次，会话已经关闭就静默跳过。`allowAnalyze: false` 也会关掉它——两者发给模型的是同一份日志。
+
 ## 权限与风险
 
 装之前请如实了解这个插件会做什么：
@@ -98,7 +100,7 @@ allowBuilds:
   - **读工作空间**需要 Jenkins Workspace API 插件；缺失时 `jenkins_workspace` 会如实说明该 Jenkins 不支持。
   - **Maven 版本号**取自 `mavenArtifacts/api/json`，只有 Maven job 有，且真实 2.176.2 上通常在构建**结束后**才产生，所以正在跑的 Maven 构建卡片上可能没有版本号（拿不到就不显示，绝不猜）。
   - **产物没有大小**：Jenkins 的 `tree` 查询取不到 artifact size。
-- **已知未完成**：`notifyWakeOnFailure`（失败时唤醒模型）与 `uiAutoOpenOnTrigger`（触发后自动展开面板）两个配置项已接受但**尚未生效**；`maxTrackedBuilds` 只是建议值，不硬性限制跟踪数量（关注列表是用户自己挑的）。
+- **已知未完成**：`uiAutoOpenOnTrigger`（触发后自动展开面板）已接受但**尚未生效**；`maxTrackedBuilds` 只是建议值，不硬性限制跟踪数量（关注列表是用户自己挑的）。
 
 ## 配置
 
@@ -142,7 +144,7 @@ allowBuilds:
 | `maxWorkspaceEntries` | `500` | 单次工作空间目录列出的条目上限 |
 | `maxReadFileBytes` | `1048576` | 单个工作空间文件的读取上限 |
 | `notifyOnComplete` | `true` | 关注的构建结束时是否发通知 |
-| `notifyWakeOnFailure` | `false` | 失败时唤醒模型（**尚未生效**） |
+| `notifyWakeOnFailure` | `false` | 关注的构建失败时，交给当初关注它的会话 |
 | `allowAnalyze` | `true` | 是否允许把失败构建交给模型分析 |
 | `analyzeLogBytes` | `16384` | 交给模型分析的日志尾部字节数 |
 | `uiAutoOpenOnTrigger` | `true` | 触发后自动展开面板（**尚未生效**） |

@@ -185,10 +185,16 @@ export class InstanceRegistry {
    * The whole list is rewritten because the settings file has no update-in-place
    * path; a read-modify-write is safe here because this plugin is the only
    * writer and the call is awaited before the cache advances.
+   *
+   * Re-favoriting a job that is already followed refreshes the recorded name and
+   * session instead of leaving them stale: following a job from another
+   * conversation has to move where its failure wake goes, or the notice would
+   * keep arriving in a session the person has left.
    * @param instanceId - the instance the path belongs to.
    * @param jobPath - the job path to toggle.
    * @param name - display name to record when adding.
    * @param favorited - the desired state.
+   * @param sessionId - session that followed it, when the caller knows one.
    * @returns the instance's favorites after the change.
    */
   async setFavorite(
@@ -196,12 +202,14 @@ export class InstanceRegistry {
     jobPath: string,
     name: string,
     favorited: boolean,
+    sessionId?: string,
   ): Promise<FavoriteJob[]> {
     const forInstance = await this.favorites(instanceId)
+    const recorded = { ...sessionId === undefined ? {} : { sessionId } }
     const next = favorited
       ? forInstance.some(entry => entry.path === jobPath)
-        ? forInstance
-        : [...forInstance, { path: jobPath, name, addedAt: Date.now() }]
+        ? forInstance.map(entry => (entry.path === jobPath ? { ...entry, name, ...recorded } : entry))
+        : [...forInstance, { path: jobPath, name, addedAt: Date.now(), ...recorded }]
       : forInstance.filter(entry => entry.path !== jobPath)
     await this.storeFavorites(instanceId, next)
     return next

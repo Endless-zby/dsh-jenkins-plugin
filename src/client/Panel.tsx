@@ -210,7 +210,9 @@ function Home({ t, state, busy, instanceId, sessionId, onReload, onOpenJob, onSw
   /** Follow or unfollow one job, then refresh the cards. */
   const toggle = useCallback(async (job: JobRow) => {
     const wantFollowed = !followed.has(job.path)
-    const answer = await toggleFavorite(instanceId, job.path, job.name, wantFollowed)
+    // The session goes along with the follow: a failure of this job wakes that
+    // conversation, and the host records it on the favorite for the watcher.
+    const answer = await toggleFavorite(instanceId, job.path, job.name, wantFollowed, sessionId)
     if (isFailure(answer)) {
       setToast(answer.message)
       setTimeout(() => { setToast(undefined) }, 4000)
@@ -219,7 +221,7 @@ function Home({ t, state, busy, instanceId, sessionId, onReload, onOpenJob, onSw
     setToast(wantFollowed ? t('favorites.added', { name: job.name }) : t('favorites.removed', { name: job.name }))
     setTimeout(() => { setToast(undefined) }, 2500)
     await loadFavorites()
-  }, [followed, instanceId, loadFavorites, t])
+  }, [followed, instanceId, loadFavorites, sessionId, t])
 
   // The followed list itself is only re-read when a followed build ends, so a
   // card's own numbers never go stale while it is running.

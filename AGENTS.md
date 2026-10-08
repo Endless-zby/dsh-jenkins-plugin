@@ -29,10 +29,28 @@ DeepSeek Harness 的 Jenkins 插件：Web GUI 里的实时构建进度面板 + �
   未被通知过），`NoticeLog` 记录已通知的键（有界，最老先淘汰）。键是
   `instanceId/jobPath#buildNumber`，所以同一构建只通知一次、同一 job 的**下一次**构建会再通知。
   刻意不依赖时钟/网络/cordis，方便直接测。
+  **失败唤醒的三条纯规则也在这里**：`shouldWake(outcome)` 只认 `failure`
+  （`unstable` 是有告警地跑完、`aborted` 通常是人自己点的，拿它们唤醒模型等于花一轮说废话）；
+  `jobNoticeKey(instanceId, jobPath)` 是"job 那一半"的键，**通知键与关注项路由都从它派生**——
+  一边手写 `${instanceId}/${jobPath}`、另一边用 `noticeKey` 就是一次静默错配，表现只是"唤醒从没到过"；
+  `wakeRoutes()` 把关注项映射成 `job 路由键 → 会话 id`，**没有会话 id 的老关注项直接缺席**（猜一个
+  owner 比沉默更糟）。
 - `src/follow.ts` — `FollowWatcher`：**只轮询关注列表**（每个实例一次列表请求，不是每个 job 一次），
-  发现终态构建就用平台自己的后台作业机制（`ctx.jobs.start`）交付一次完成通知。
-  `notifyOnComplete` 关或组合里没有 jobs 服务时不启动（静默降级，不算错误）。
-  一轮 tick 用重入标志挡住，且任何异常都被吞掉——控制器宕机/凭据轮换不能让 watcher 死掉。
+  发现终态构建就用平台自己的后台作业机制（`ctx.jobs.start`）交付一次完成通知，
+  **失败的构建另外唤醒当初关注它的那个会话**（`notifyWakeOnFailure`）。
+  唤醒**搭在同一个「这次构建只处理一次」的判断上**，所以同一次构建不可能唤醒两次——即使完成通知
+  投递失败也一样；它复用 `src/analyze.ts` 的 `handOverFailure`，也就是和面板按钮**完全相同**的读与提示词。
+  每一环失败都是静默的：关注项没记会话、会话没有活着的 agent（人已经离开那个对话，不是错误）、
+  控制器中途挂掉——构建都已经记为 announced，所以投递不成的唤醒是**丢掉而不是每轮重试**。
+  `allowAnalyze` 也管它（两者发给模型的是同一份日志）。
+  `start()` 只在**至少一条通道真能投递**时才装定时器（`notifyOnComplete`+有 jobs 服务，或
+  `notifyWakeOnFailure`+有 agents 服务），否则一轮轮询纯属白花请求；一轮 tick 用重入标志挡住，
+  且任何异常都被吞掉——控制器宕机/凭据轮换不能让 watcher 死掉。
+- `src/handoff.ts` — **把插件消息投进某个会话**的唯一实现（路由与 watcher 共用）：
+  `followupFor(ctx, sessionId)` 返回 `ok | no-service | no-session` 三态，**故意区分**——
+  组合里没有 agent 运行时（503）与"这个会话没有活着的 agent"（409）是两件事，路由据此给出不同状态；
+  watcher 只关心 `ok`，其余静默跳过。消息用 `createUserMessage` 构造并打上
+  `source: {kind:'plugin', plugin:'jenkins-plugin'}`；手搓消息形状正是最容易和平台漂开的东西。
 - `src/tools/builds.ts` — 四个工具：`jenkins_build_status`、`jenkins_log`、`jenkins_workspace`、
   **`jenkins_build`**（唯一的写工具；触发后会 `tracker.trackQueue()`，所以**模型触发的构建也会自己
   出现在面板上**，对应 SPEC §10 验收第 1 条）。
@@ -130,7 +148,10 @@ DeepSeek Harness 的 Jenkins 插件：Web GUI 里的实时构建进度面板 + �
 - `src/client/WriteAction.tsx` — 三处写/动作共用的一个控件（JobView / BuildView / 关注卡片）：
   「按钮 → 行内二次确认 → 执行 → 就地显示结果」，失败也是就地显示。`immediate` 只给不改控制器
   的那个动作（交给 AI 分析）用，别拿它绕开确认。别在别处再写一遍这套状态机。
-- `src/settings.ts` 同时保存**关注列表**（`favorites`，按实例 id 分键）。
+- `src/settings.ts` 同时保存**关注列表**（`favorites`，按实例 id 分键）。每个关注项还记着
+  **follow 它的会话 id**（`FavoriteJob.sessionId`），失败唤醒就按它投递；`setFavorite()` 在
+  「已经关注过」时**刷新 name 与 sessionId**，所以在另一个会话里再点一次★会把唤醒改投到新会话——
+  否则通知会一直送到人已经离开的那个对话里。没有这个字段的老关注项（升级前存的）保持沉默。
 - `tests/stub-jenkins.ts` — 零依赖 stub Jenkins（两层 folder 树 + 阶段 + `/me/api/json` + 可浏览页面）。
   **正在跑的构建的 `timestamp` 必须相对当前时刻**（`RUNNING_AGE_MS`）：写死日期的结果是进度条把
   「这个固定日期距今多久」当成构建耗时显示出来，看起来像面板坏了。
@@ -147,14 +168,17 @@ DeepSeek Harness 的 Jenkins 插件：Web GUI 里的实时构建进度面板 + �
   触发时**把它收到的参数存回 job**（`node.parameters`），构建的 `actions[parameters]` 因此会报出
   「这个构建是用什么参数跑的」——真实 Jenkins 就是这样，也正是「重新构建沿用上次参数」能被断言的原因。
   每个构建还带 3 条 `changeSet` 提交（最新那条消息里含 `#<number>`），供卡片的变更说明使用。
-- `tests/*.ts` — **仓库内断言测试**，没有测试框架，`node tests/<name>.ts`（先 `tsc`）：共 235 项。
+- `tests/*.ts` — **仓库内断言测试**，没有测试框架，`node tests/<name>.ts`（先 `tsc`）：共 292 项。
   `panel-live.ts` 64（面板规则 + 参数解析 + 关注列表的实例标签 + `changeSummary` + `wantRebuild`）、
   `tracker.ts` 53（轮询决策 + queued 态 + `isRecordGone` + **同一构建号再次变为存活时替换而不是
-  合并旧记录**）、`analyze.ts` 41（提示词内容、缺席事实要明说、截断声明带真实大小、提交条数与截断、
-  在途去重键，以及**交接用了哪个 offset/上限、只排一条消息**）、`watch.ts` 30（通知判定：跑着的
-  不通知、同一次构建只通知一次、下一次要再通知、`NoticeLog` 有界）、`console-log.ts` 22
-  （**进程内假控制器**复现真实 2.176.2 行为：忽略 `?start=`、只给 `content-length`，断言 tail
-  是尾不是头、`x-text-size` 优先、超窗读要如实报 `truncated`）、`maven-version.ts` 11
+  合并旧记录**）、`wake.ts` 57（**失败唤醒**：只认 failure、通知键与关注项路由键**必须同源**、
+  同一次构建只唤醒一次、会话不存在/未记会话/开关关闭/allowAnalyze 关闭/控制器中途失败都静默、
+  以及 watcher **只在至少一条通道能投递时才装定时器**——用假 ctx/registry/Jenkins 驱动真实的
+  `FollowWatcher`，不是复述规则）、`analyze.ts` 41（提示词内容、缺席事实要明说、截断声明带真实大小、
+  提交条数与截断、在途去重键，以及**交接用了哪个 offset/上限、只排一条消息**）、`watch.ts` 30
+  （通知判定：跑着的不通知、同一次构建只通知一次、下一次要再通知、`NoticeLog` 有界）、
+  `console-log.ts` 22（**进程内假控制器**复现真实 2.176.2 行为：忽略 `?start=`、只给 `content-length`，
+  断言 tail 是尾不是头、`x-text-size` 优先、超窗读要如实报 `truncated`）、`maven-version.ts` 11
   （Maven 版本解析的每种形状 + **404/500/连不上都必须安静地返回 undefined**）、
   `write-policy.ts` 14（写权限判定；还顺带断言 `routes.ts` **没有**用 `ctx.approval`，
   因为「面板写路径不接审批」这件事在行为上不可见，只能对着源码断言）。
@@ -255,7 +279,7 @@ job」每 1.5s 抛一次，后面所有构建（包括刚触发的排队项）**
 
 ```sh
 npm install --ignore-scripts --cache .npm-cache   # 见下方沙箱说明
-npm test                                         # tsc + node scripts/run-tests.mjs（7 个 tests/*.ts）
+npm test                                         # tsc + node scripts/run-tests.mjs（8 个 tests/*.ts）
 npm run check                                    # test + build + 密钥扫描 + 打包内容审计
 node node_modules/typescript/bin/tsc -p tsconfig.json --noEmit   # 类型检查
 node node_modules/typescript/bin/tsc -p tsconfig.json            # 产物：lib/*.js + lib/**/*.d.ts
@@ -300,7 +324,7 @@ node scripts/build-client.mjs                                    # 产物：lib/
 发布前三道闸（也就是 CI 该跑的三条）：
 
 ```sh
-npm test                 # tsc + 7 个 tests/*.ts（scripts/run-tests.mjs 汇总，235 项）
+npm test                 # tsc + 8 个 tests/*.ts（scripts/run-tests.mjs 汇总，292 项）
 npm run check:secrets    # 凭据形状失败、内网主机名/个人绝对路径告警（扫"提交会带上"的文件）
 npm run check:payload    # 读 npm pack 的清单：产物齐不齐、有没有把 src/ 或内部笔记打进去
 npm pack                 # 出 tarball，先在一个干净 profile 上按 README 的命令装一遍再 publish
@@ -366,12 +390,15 @@ README 图片必须用**绝对 URL**（相对路径会在两处各坏一次：np
 
 ### 发布进度（2026-10-08）
 
-- **npm：`dsh-jenkins-plugin@0.1.0` 已发布**（2026-10-08T02:21:04Z，`dist-tags.latest = 0.1.0`，
-  54 个文件 / 558 027 字节，注册表带 `signatures`，README 里含安装命令）。
+- **npm：`dsh-jenkins-plugin@0.1.1` 是当前 latest**（2026-10-08T03:10:01Z 上线；`0.1.0` 仍在版本列表里）。
+  0.1.1 只改了打包进 npm 的 README：图片换成能解析的主机、并带上全部 6 张引用。
+  实测核对（`.e2e/verify-publish.mjs 0.1.1`）：`latest=0.1.1`、tarball 200、README 里
+  `cdn.jsdelivr.net` 6 处 / `raw.githubusercontent` 0 处、54 个文件。
   **发布成功后有几 minutes 的异步生成期**：packument 里已经有版本、`dist.tarball` 却是 404，
   npm 会打印 `Your package is being processed and may take a few minutes to become available.`
   ——**别在这几分钟内判断失败**（我差点去 unpublish 重发；而 unpublish 之后 24 小时内不能重发同一版本，
   会白白浪费一个版本号）。判断依据是 `time['<version>']` 有没有出现，而不是 tarball 那一下的 404。
+  0.1.1 这次版本号出现得比 tarball 还晚几分钟，所以更要按这个信号等。
 - **新包名会先自动生成一个 `0.0.0-stage` 占位版本**（description 写着 "Temporary package placeholder
   for staged publishing"）。这是 npm 的占名行为，`latest` 仍指向真正发布的版本，**不要试图删它**。
 - **三条 token 教训合起来才是直发**：`bypass_2fa: true` ＋ 权限档位 **"Read and write"**
@@ -501,26 +528,20 @@ README 图片必须用**绝对 URL**（相对路径会在两处各坏一次：np
 
 已完成：设置页/多实例、面板两个模块（**我关注的**卡片区含进度条 + **所有 job**默认折叠、行内 ☆/★）、
 三层下钻（构建历史 → 构建详情含阶段条/内嵌日志/测试/变更集/产物）、
-**关注 job 的完成通知**（`src/watch.ts` + `src/follow.ts`）、**面板写操作**（触发/重新构建/中止，
-行内二次确认 + `denyJobs`/`allow.*`，**不接** `ctx.approval`）、**触发的构建会自己出现在面板上**
-（排队项 → 构建号的重新挂键），以及全部五个模型工具
+**关注 job 的完成通知**（`src/watch.ts` + `src/follow.ts`）、**失败唤醒模型**
+（`notifyWakeOnFailure`：把会话 id 记进关注项，失败时把同一份日志交给那个会话；57 项断言）、
+**面板写操作**（触发/重新构建/中止，行内二次确认 + `denyJobs`/`allow.*`，**不接** `ctx.approval`）、
+**触发的构建会自己出现在面板上**（排队项 → 构建号的重新挂键），以及全部五个模型工具
 （`jenkins_jobs` / `jenkins_build` / `jenkins_build_status` / `jenkins_log` / `jenkins_workspace`）。
 
 剩余工作按此顺序：
 
-1. `notifyWakeOnFailure`（`agent.followup()`）：构建失败时唤醒模型。
-   **归属问题已经解决，别再重新设计**：`analyze` 路由证明了 `ctx.get('agents')` →
-   `agents.get(sessionId)` → `Agent.followup(createUserMessage(...))` 这条链是活的，
-   所以 watcher 不需要新机制，缺的只是**把会话 id 记进关注项**（人从哪个会话点的关注就归谁），
-   失败时按这个 id 取 agent 排一条提示词（可以直接复用 `src/analyze.ts` 的 `handOverFailure`）。
-   注意两点：关注项在**历史会话**里点的也算数，`agents.get()` 返回 undefined 时必须静默放弃
-   （会话已结束不是错误）；以及**不要**给同一条构建排两次消息（`NoticeLog` 的键可以复用）。
-   没写会话 id 的老关注项按「不唤醒」处理，比猜一个 owner 安全。
-2. **HTTP 路由契约**还没固化成仓库内测试：401 守门、`POST /instances` 的原子性（一行连不上则零写入）、
-   `favorites` 与 `instances` 共享设置文件时互不覆盖、`/trigger` 与 `/abort` 的 403 形状。
+1. **HTTP 路由契约**还没固化成仓库内测试：401 守门、`POST /instances` 的原子性（一行连不上则零写入）、
+   `favorites` 与 `instances` 共享设置文件时互不覆盖、`/trigger` 与 `/abort` 的 403 形状、
+   以及新的 `/favorites/toggle` 带 session 时**关注列表里确实存下了会话 id**。
    这一层现在只有 `.e2e` 探针覆盖（跑起来要 stub + dsh web + dev token）。要变成 `tests/*.ts`，
    得先在进程内起一个最小的 host（参考 `tests/console-log.ts` 的假控制器写法），别引入测试框架。
-3. 阶段级日志精确切片（SPEC §12 未决项）：依赖 Blue Ocean `execution/node/<id>/wfapi/log`。
+2. 阶段级日志精确切片（SPEC §12 未决项）：依赖 Blue Ocean `execution/node/<id>/wfapi/log`。
    （`consoleText` 的两种控制器行为已经由 `tests/console-log.ts` 的假控制器覆盖，
    stub 端也补了同样不配合的 `consoleText`，这条不再是缺口。）
 

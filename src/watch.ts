@@ -56,6 +56,61 @@ export function noticeKey(instanceId: string, jobPath: string, buildNumber: numb
 }
 
 /**
+ * The part of a notice key that names the job rather than the build.
+ *
+ * Routing a failure wake needs "which session followed this job", while a notice
+ * names one build. Both sides derive their key from this function so the pair
+ * cannot drift apart — a hand-written `${instanceId}/${jobPath}` in one place and
+ * `noticeKey` in the other is a silent mismatch that only shows up as a wake that
+ * never arrives.
+ * @param instanceId - instance id.
+ * @param jobPath - job path.
+ * @returns the job's route key.
+ */
+export function jobNoticeKey(instanceId: string, jobPath: string): string {
+  return `${instanceId}/${jobPath}`
+}
+
+/**
+ * Whether a finished build should wake the session that followed it.
+ *
+ * Only a real failure wakes anyone. `unstable` is a build that finished with
+ * warnings and `aborted` is usually the operator's own doing, so waking a model
+ * for either would spend a turn on news the person already has.
+ * @param outcome - terminal outcome.
+ * @returns true when the outcome deserves a wake.
+ */
+export function shouldWake(outcome: string): boolean {
+  return outcome === 'failure'
+}
+
+/** One followed job, as the wake routing needs to see it. */
+export interface WakeFavorite {
+  /** Job path. */
+  path: string
+  /** Session that followed it, when the favorite recorded one. */
+  sessionId?: string
+}
+
+/**
+ * Map followed jobs to the session that should hear about their failures.
+ *
+ * Favorites added before this feature existed carry no session id and are simply
+ * absent from the map: guessing an owner would be worse than staying quiet.
+ * @param instanceId - the instance every favorite belongs to.
+ * @param favorites - that instance's favorites.
+ * @returns route key to session id.
+ */
+export function wakeRoutes(instanceId: string, favorites: readonly WakeFavorite[]): Map<string, string> {
+  const routes = new Map<string, string>()
+  for (const favorite of favorites) {
+    if (favorite.sessionId === undefined || favorite.sessionId.length === 0) continue
+    routes.set(jobNoticeKey(instanceId, favorite.path), favorite.sessionId)
+  }
+  return routes
+}
+
+/**
  * Whether a build outcome is terminal.
  * @param outcome - the outcome to test.
  * @returns true when the build will not change again.
