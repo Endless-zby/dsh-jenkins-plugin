@@ -168,17 +168,23 @@ DeepSeek Harness 的 Jenkins 插件：Web GUI 里的实时构建进度面板 + �
   触发时**把它收到的参数存回 job**（`node.parameters`），构建的 `actions[parameters]` 因此会报出
   「这个构建是用什么参数跑的」——真实 Jenkins 就是这样，也正是「重新构建沿用上次参数」能被断言的原因。
   每个构建还带 3 条 `changeSet` 提交（最新那条消息里含 `#<number>`），供卡片的变更说明使用。
-- `tests/*.ts` — **仓库内断言测试**，没有测试框架，`node tests/<name>.ts`（先 `tsc`）：共 292 项。
+- `tests/*.ts` — **仓库内断言测试**，没有测试框架，`node tests/<name>.ts`（先 `tsc`）：共 332 项。
   `panel-live.ts` 64（面板规则 + 参数解析 + 关注列表的实例标签 + `changeSummary` + `wantRebuild`）、
   `tracker.ts` 53（轮询决策 + queued 态 + `isRecordGone` + **同一构建号再次变为存活时替换而不是
   合并旧记录**）、`wake.ts` 57（**失败唤醒**：只认 failure、通知键与关注项路由键**必须同源**、
   同一次构建只唤醒一次、会话不存在/未记会话/开关关闭/allowAnalyze 关闭/控制器中途失败都静默、
   以及 watcher **只在至少一条通道能投递时才装定时器**——用假 ctx/registry/Jenkins 驱动真实的
-  `FollowWatcher`，不是复述规则）、`analyze.ts` 41（提示词内容、缺席事实要明说、截断声明带真实大小、
-  提交条数与截断、在途去重键，以及**交接用了哪个 offset/上限、只排一条消息**）、`watch.ts` 30
-  （通知判定：跑着的不通知、同一次构建只通知一次、下一次要再通知、`NoticeLog` 有界）、
-  `console-log.ts` 22（**进程内假控制器**复现真实 2.176.2 行为：忽略 `?start=`、只给 `content-length`，
-  断言 tail 是尾不是头、`x-text-size` 优先、超窗读要如实报 `truncated`）、`maven-version.ts` 11
+  `FollowWatcher`，不是复述规则）、`client-api.ts` 40（**面板这一半的 HTTP 契约**：各路由的
+  path/方法/query 编码、写路由的 body 形状（`build` 是**字符串**、参数的 key 名）、
+  `favorites/toggle` 带/不带 session 的两种 body、失败归一（403/非 JSON/无 `ok:true`/网络异常
+  四种都变成同一个 failure 值而不是抛异常）、以及 **SSE URL 里 `#` 必须被百分号编码**——
+  少编码一个 `#` 会让后面全变成 fragment，宿主就订阅了空列表；用假 `fetch`/`EventSource` 驱动，
+  所以这些原本只有 `.e2e` 探针才盖到的契约进了仓库门禁与 CI）、
+  `analyze.ts` 41（提示词内容、缺席事实要明说、截断声明带真实大小、提交条数与截断、在途去重键，
+  以及**交接用了哪个 offset/上限、只排一条消息**）、`watch.ts` 30（通知判定：跑着的不通知、
+  同一次构建只通知一次、下一次要再通知、`NoticeLog` 有界）、`console-log.ts` 22
+  （**进程内假控制器**复现真实 2.176.2 行为：忽略 `?start=`、只给 `content-length`，断言 tail
+  是尾不是头、`x-text-size` 优先、超窗读要如实报 `truncated`）、`maven-version.ts` 11
   （Maven 版本解析的每种形状 + **404/500/连不上都必须安静地返回 undefined**）、
   `write-policy.ts` 14（写权限判定；还顺带断言 `routes.ts` **没有**用 `ctx.approval`，
   因为「面板写路径不接审批」这件事在行为上不可见，只能对着源码断言）。
@@ -279,7 +285,7 @@ job」每 1.5s 抛一次，后面所有构建（包括刚触发的排队项）**
 
 ```sh
 npm install --ignore-scripts --cache .npm-cache   # 见下方沙箱说明
-npm test                                         # tsc + node scripts/run-tests.mjs（8 个 tests/*.ts）
+npm test                                         # tsc + node scripts/run-tests.mjs（9 个 tests/*.ts）
 npm run check                                    # test + build + 密钥扫描 + 打包内容审计
 npm run release:check                            # 发布前预检（见 RELEASING.md）
 node node_modules/typescript/bin/tsc -p tsconfig.json --noEmit   # 类型检查
@@ -329,7 +335,7 @@ node scripts/build-client.mjs                                    # 产物：lib/
 发布前三道闸（也就是 CI 该跑的三条）：
 
 ```sh
-npm test                 # tsc + 8 个 tests/*.ts（scripts/run-tests.mjs 汇总，292 项）
+npm test                 # tsc + 9 个 tests/*.ts（scripts/run-tests.mjs 汇总，332 项）
 npm run check:secrets    # 凭据形状失败、内网主机名/个人绝对路径告警（扫"提交会带上"的文件）
 npm run check:payload    # 读 npm pack 的清单：产物齐不齐、有没有把 src/ 或内部笔记打进去
 npm pack                 # 出 tarball，先在一个干净 profile 上按 README 的命令装一遍再 publish

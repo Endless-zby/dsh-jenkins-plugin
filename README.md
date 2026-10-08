@@ -158,7 +158,7 @@ Static configuration is only the **fallback layer**: instances configured in the
 ```sh
 npm install          # runs prepare (= build) once
 npm run typecheck
-npm test             # 292 assertions, no test framework: every tests/*.ts runs on its own
+npm test             # 332 assertions, no test framework: every tests/*.ts runs on its own
 npm run build        # tsc (Host half) + esbuild (browser half → lib/client.js)
 npm run check        # test + secret scan + packed-payload audit
 ```

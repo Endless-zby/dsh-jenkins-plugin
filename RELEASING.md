@@ -32,7 +32,7 @@ npm run check
 **期望**（三个数字都要对上）：
 
 ```
-8/8 test files passed                       # 当前 292 项断言
+9/9 test files passed                       # 当前 332 项断言
 scanned NN tracked file(s): 0 failure(s), 0 warning(s)
 The packed payload is complete and carries no repository internals.
 ```
@@ -131,8 +131,15 @@ node .e2e/verify-publish.mjs <ver>
 ```
 
 它轮询到 tarball 真的 200，然后打印：`latest`、文件数、README 里的图片主机计数、
-安装命令是否存在。**期望**：`latest=<ver>`、`tarball(<ver>)=200`、
-`cdn.jsdelivr.net` 计数 = README 里的图片数、`raw.githubusercontent` = 0。
+安装命令是否存在，最后**把 README 里每一张图都按真实字节加载一遍**（每张最多试 3 次，
+尺寸也打印出来）。**期望**：`latest=<ver>`、`tarball(<ver>)=200`、
+`cdn.jsdelivr.net` 计数 = README 里的图片数、`raw.githubusercontent` = 0、
+每张图都是 `ok <bytes>` 且退出码 0。
+
+> 图片那一步是**唯一能证明"npm 页面上真的看得到图"的检查**：主机计数只能说明 URL 换了人，
+> 说明不了 CDN 那头真有这个文件。CDN 按「文件 + 分支」取件，所以**只有在这次发布新增/更换了
+> 图片文件本身时**，才需要先把图片 push 上 `main` 再跑这一步（只改 README 里的引用不必）。
+> 任何一张图挂掉脚本就以 1 退出——那就是"npm 页面上一张破图"，比计数不对更严重，别跳过。
 
 再从**注册表**装一遍（不是从本地 tgz，证明装到的就是发布的字节）：
 
