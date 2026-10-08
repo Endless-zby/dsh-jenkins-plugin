@@ -168,7 +168,7 @@ DeepSeek Harness 的 Jenkins 插件：Web GUI 里的实时构建进度面板 + �
   触发时**把它收到的参数存回 job**（`node.parameters`），构建的 `actions[parameters]` 因此会报出
   「这个构建是用什么参数跑的」——真实 Jenkins 就是这样，也正是「重新构建沿用上次参数」能被断言的原因。
   每个构建还带 3 条 `changeSet` 提交（最新那条消息里含 `#<number>`），供卡片的变更说明使用。
-- `tests/*.ts` — **仓库内断言测试**，没有测试框架，`node tests/<name>.ts`（先 `tsc`）：共 332 项。
+- `tests/*.ts` — **仓库内断言测试**，没有测试框架，`node tests/<name>.ts`（先 `tsc`）：共 415 项。
   `panel-live.ts` 64（面板规则 + 参数解析 + 关注列表的实例标签 + `changeSummary` + `wantRebuild`）、
   `tracker.ts` 53（轮询决策 + queued 态 + `isRecordGone` + **同一构建号再次变为存活时替换而不是
   合并旧记录**）、`wake.ts` 57（**失败唤醒**：只认 failure、通知键与关注项路由键**必须同源**、
@@ -180,6 +180,15 @@ DeepSeek Harness 的 Jenkins 插件：Web GUI 里的实时构建进度面板 + �
   四种都变成同一个 failure 值而不是抛异常）、以及 **SSE URL 里 `#` 必须被百分号编码**——
   少编码一个 `#` 会让后面全变成 fragment，宿主就订阅了空列表；用假 `fetch`/`EventSource` 驱动，
   所以这些原本只有 `.e2e` 探针才盖到的契约进了仓库门禁与 CI）、
+  `routes.ts` 83（**宿主那一半的 HTTP 契约**，在**进程内**起一个真实 host：真 `registerJenkinsRoutes`
+  + 真 `InstanceRegistry` + 真 `JenkinsClient` + 一个真的、在临时端口上应答的控制器，只有 webServer
+  与 req/res 是假的——因为那两样属于组合而不属于本插件。断言：401 守门对**每一条**路由都在读 body
+  之前生效、**没有信任服务时必须关而不是开**（见下「不得违反的技术约束」）、`POST /instances`
+  一行连不通则**零写入**、关注列表与实例列表同处一个文件时**互不覆盖**、`favorites/toggle` 把会话 id
+  落盘而**不带会话时不落**（猜一个 owner 比沉默更糟）、`denyJobs`/`allowCancel` 的 403 形状且
+  **控制器一个请求都没收到**、`allowAnalyze` 关 / 没有 agent 运行时 / 会话没有活 agent 的
+  **403 / 503 / 409 三态**、以及交接后**只排一条消息**且提示词里真的带着失败日志行。
+  这一层原来只有 `.e2e` 探针覆盖（要 stub + dsh web + dev token），所以从来没进过 CI）、
   `analyze.ts` 41（提示词内容、缺席事实要明说、截断声明带真实大小、提交条数与截断、在途去重键，
   以及**交接用了哪个 offset/上限、只排一条消息**）、`watch.ts` 30（通知判定：跑着的不通知、
   同一次构建只通知一次、下一次要再通知、`NoticeLog` 有界）、`console-log.ts` 22
@@ -285,7 +294,7 @@ job」每 1.5s 抛一次，后面所有构建（包括刚触发的排队项）**
 
 ```sh
 npm install --ignore-scripts --cache .npm-cache   # 见下方沙箱说明
-npm test                                         # tsc + node scripts/run-tests.mjs（9 个 tests/*.ts）
+npm test                                         # tsc + node scripts/run-tests.mjs（10 个 tests/*.ts）
 npm run check                                    # test + build + 密钥扫描 + 打包内容审计
 npm run release:check                            # 发布前预检（见 RELEASING.md）
 node node_modules/typescript/bin/tsc -p tsconfig.json --noEmit   # 类型检查
@@ -335,7 +344,7 @@ node scripts/build-client.mjs                                    # 产物：lib/
 发布前三道闸（也就是 CI 该跑的三条）：
 
 ```sh
-npm test                 # tsc + 9 个 tests/*.ts（scripts/run-tests.mjs 汇总，332 项）
+npm test                 # tsc + 10 个 tests/*.ts（scripts/run-tests.mjs 汇总，415 项）
 npm run check:secrets    # 凭据形状失败、内网主机名/个人绝对路径告警（扫"提交会带上"的文件）
 npm run check:payload    # 读 npm pack 的清单：产物齐不齐、有没有把 src/ 或内部笔记打进去
 npm pack                 # 出 tarball，先在一个干净 profile 上按 README 的命令装一遍再 publish
@@ -463,6 +472,12 @@ README 图片必须用**绝对 URL**（相对路径会在两处各坏一次：np
   方括号在 query 里语法上合法，所以各家客户端必须自己约定编码——`src/jenkins/client.ts` 里的 `tree()`
   就是干这个的，**任何新拼的 tree 查询都要过它**。这是 stub 掩盖过的真 bug：stub 不挑食，客户端怎么发都收。
 - **可选服务只能用 `ctx.get(name)` 读，不能用 `ctx.connection` / `Reflect.get(ctx, 'connection')`**：cordis 的 context 是 Proxy，读一个没在 `inject` 里声明的属性会**抛** `cannot get property "connection" without inject`（不是返回 `undefined`），而且抛点在 `try/catch` 之外时会被 webserver 兜成 400。`open-in-app` 能写 `connectionOf(ctx)` 是因为它的 `inject` 里同时有 `webServer` 和 `connection`。本插件的 `connection` 是浏览器侧服务，**不能**放进 `inject` 顶层（否则非 Web 组合整个 Host 半加载不了），所以走 `ctx.get('connection')`——cordis 明确文档为「without the inject requirement」，没有时返回 `undefined`，守门自然 fail-closed。见 `src/routes.ts` 的 `trustOf`。
+  **但「读到 `undefined`」本身不会关上门**：写成 `trustOf(ctx)?.requestRejection(req)` 时，服务缺失让 `rejection` 是 `undefined`，
+  而 `undefined` 在守门里的含义是「放行」——于是没有信任服务的组合会**fail-open**，路由照样读控制器数据、照样触发构建。
+  这是**真实存在过的 bug**（写成 `?.` 之后一路绿灯，因为 Web 组合永远有那个服务：Live 实测不带 cookie 是 401、
+  带 cookie 是 200，说明服务在真组合里确实存在，所以这条路径只有 `tests/routes.ts` 第 2 节能碰到）。
+  正确写法是把「没有服务」当成拒绝：`const rejection = trust === undefined ? 401 : trust.requestRejection(req)`。
+  推论：**任何用 `?.` 读可选服务再拿 `undefined` 当"没问题"的守门都是 fail-open**，这类判断必须显式写出来。
 - **浏览器半必须打成 lazy-CJS 工厂**：`window.__ModuleLoader__.load({ id, factory: (require) => {...} })`，`id` 是包名 `dsh-jenkins-plugin`。React / Cordis / `dsh-client-store` / `ui-slots` / `ui-primitives` / `ui-dockkit` 是平台基线模块，必须 external 并用注入的 `require` 解析；其余全部内联。仓库里的 `tsdown.client.ts` 不对外发布，所以本仓库自产这个格式。
 - **面板的写操作不能走 `ctx.approval`**：该 seam 要求请求方处于未结束的轮次内，人在面板上的点击不满足。面板写操作用前端二次确认 + `allowTrigger`/`allowCancel` + `denyJobs` 守门；模型侧工具才走审批。
 - 客户端依赖只作 `devDependencies`（类型用，`import type` 擦除），`@deepseek-ai/dsh-*` 走 `peerDependencies`，绝不放进 `dependencies`（否则会把整棵 harness 拖进 profile）。`@deepseek-ai/schemastery` 是唯一运行时依赖。
@@ -555,17 +570,13 @@ README 图片必须用**绝对 URL**（相对路径会在两处各坏一次：np
 **关注 job 的完成通知**（`src/watch.ts` + `src/follow.ts`）、**失败唤醒模型**
 （`notifyWakeOnFailure`：把会话 id 记进关注项，失败时把同一份日志交给那个会话；57 项断言）、
 **面板写操作**（触发/重新构建/中止，行内二次确认 + `denyJobs`/`allow.*`，**不接** `ctx.approval`）、
-**触发的构建会自己出现在面板上**（排队项 → 构建号的重新挂键），以及全部五个模型工具
+**触发的构建会自己出现在面板上**（排队项 → 构建号的重新挂键）、**HTTP 路由契约的仓库内测试**
+（`tests/routes.ts` 83 项，进程内起真实 host——见 `tests/*.ts` 一节），以及全部五个模型工具
 （`jenkins_jobs` / `jenkins_build` / `jenkins_build_status` / `jenkins_log` / `jenkins_workspace`）。
 
 剩余工作按此顺序：
 
-1. **HTTP 路由契约**还没固化成仓库内测试：401 守门、`POST /instances` 的原子性（一行连不上则零写入）、
-   `favorites` 与 `instances` 共享设置文件时互不覆盖、`/trigger` 与 `/abort` 的 403 形状、
-   以及新的 `/favorites/toggle` 带 session 时**关注列表里确实存下了会话 id**。
-   这一层现在只有 `.e2e` 探针覆盖（跑起来要 stub + dsh web + dev token）。要变成 `tests/*.ts`，
-   得先在进程内起一个最小的 host（参考 `tests/console-log.ts` 的假控制器写法），别引入测试框架。
-2. 阶段级日志精确切片（SPEC §12 未决项）：依赖 Blue Ocean `execution/node/<id>/wfapi/log`。
+1. 阶段级日志精确切片（SPEC §12 未决项）：依赖 Blue Ocean `execution/node/<id>/wfapi/log`。
    （`consoleText` 的两种控制器行为已经由 `tests/console-log.ts` 的假控制器覆盖，
    stub 端也补了同样不配合的 `consoleText`，这条不再是缺口。）
 

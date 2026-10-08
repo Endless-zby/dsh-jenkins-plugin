@@ -158,7 +158,7 @@ allowBuilds:
 ```sh
 npm install          # 会跑一次 prepare（=构建）
 npm run typecheck
-npm test             # 332 项断言，无测试框架：每个 tests/*.ts 都是可直接运行的脚本
+npm test             # 415 项断言，无测试框架：每个 tests/*.ts 都是可直接运行的脚本
 npm run build        # tsc（Host 半）+ esbuild（浏览器半 → lib/client.js）
 npm run check        # test + 密钥扫描 + 打包内容审计
 ```

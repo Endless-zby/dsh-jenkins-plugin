@@ -314,7 +314,15 @@ export function registerJenkinsRoutes(
 
   /** Reject an untrusted caller; true when the response is already written. */
   const rejected = (req: IncomingMessage, res: ServerResponse): boolean => {
-    const rejection = trustOf(ctx)?.requestRejection(req)
+    const trust = trustOf(ctx)
+    // No trust service means no browser can be authenticated at all, so the
+    // route is closed rather than open: these handlers serve controller data and
+    // perform controller writes, and a composition that mounted them without the
+    // fence must not hand either to whoever can reach the port. Reading the
+    // service through `ctx.get` returns `undefined` rather than throwing, which
+    // is exactly why the door has to be closed here instead of being assumed
+    // shut by the lookup.
+    const rejection = trust === undefined ? 401 : trust.requestRejection(req)
     if (rejection === undefined) return false
     res.statusCode = rejection
     res.end()

@@ -32,7 +32,7 @@ npm run check
 **期望**（三个数字都要对上）：
 
 ```
-9/9 test files passed                       # 当前 332 项断言
+10/10 test files passed                     # 当前 415 项断言
 scanned NN tracked file(s): 0 failure(s), 0 warning(s)
 The packed payload is complete and carries no repository internals.
 ```
