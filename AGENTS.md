@@ -330,6 +330,20 @@ npm run check:payload    # 读 npm pack 的清单：产物齐不齐、有没有�
 npm pack                 # 出 tarball，先在一个干净 profile 上按 README 的命令装一遍再 publish
 ```
 
+### CI（`.github/workflows/ci.yml`）
+
+**CI 就是这三条闸**，按失败原因拆成独立 step（断言失败 / 追踪文件里出现凭据形状 / 打包产物缺件
+是三种不同的问题，step 名要能直接指出是哪种）：`npm ci --ignore-scripts` → `npm run build`
+（测试 import 的是 `lib/` 的产物，必须先构建）→ `npm test` → `check:secrets` → `check:payload`。
+Node 钉 **24**：`tests/*.ts` 是**直接被 node 运行的 TypeScript**，需要会剥类型的 Node。
+`--ignore-scripts` 是必要的：本包的 `prepare` 会再构建一次，而 esbuild 的 postinstall 不需要
+（bundler 二进制是直接调用的，走 optionalDependencies 落地——已在临时目录实跑验证：
+`npm ci --ignore-scripts` 56 个包 2 秒装完、`node_modules/@esbuild/win32-x64/esbuild.exe` 存在）。
+Action 版本按 `releases/latest` 查出来钉当前大版本（`actions/checkout@v7`、`actions/setup-node@v7`）。
+README 顶部的 CI 徽章用 **img.shields.io**（实测 200；`github.com/.../badge.svg` 在国内常不可达），
+本地可以用 `.e2e/check-workflow.mjs` 先把 workflow 当 YAML 解析一遍并打印 step 列表——
+workflow 有语法错就永远不会触发，那种失败在 CI 页面上什么都看不到。
+
 发布顺序：`npm run check` → 提交并打 `v0.1.0` tag → 公开 GitHub 仓库并加 topic →（干净 profile 验证）
 → `npm login && npm publish` → 用市场模板提交 → 收录后把徽章加进 README。
 
@@ -380,13 +394,15 @@ Maven groupId、绝对路径、提交者账号**。第一版实测就中了四�
 只能显示"该 job 不是 Pipeline，Jenkins 不提供阶段信息"）。
 
 README 图片必须用**绝对 URL**（相对路径会在两处各坏一次：npm 包页面不解析相对图片路径、市场站点
-按自己的域名解析它；`files` 里也不含 `doc/`），但**绝对不能用 `raw.githubusercontent.com`**：
-在国内网络实测 `raw.githubusercontent.com` 与 `github.com/<o>/<r>/raw/...` 都是 **000/超时
-（12 次请求 0 成功）**，`cdn.jsdelivr.net/gh/<owner>/<repo>@main/...` 是 **12/12**、
-`gcore.jsdelivr.net` 11/12。所以统一用
-`https://cdn.jsdelivr.net/gh/<owner>/<repo>@main/doc/<file>`，并且**预热缓存**：jsDelivr 第一次
-拉未缓存文件可能超时（实测出现过 000），连续请求到 200 之后对所有访客都很快——
-改完图片路径就顺手把 6 个 URL 各打一遍，别让市场的第一个访客替我们等冷启动。
+按自己的域名解析它；`files` 里也不含 `doc/`）。主机选择上**别把一次测量当成永久结论**：同一个
+网络窗口里 `raw.githubusercontent.com` 是 **0/12（全超时）** 而 `cdn.jsdelivr.net` 是 **12/12**，
+几十分钟后再测**两者对调了**——raw 200 且字节一致、jsDelivr 000。两边都会抽。
+保持 `https://cdn.jsdelivr.net/gh/<owner>/<repo>@main/doc/<file>` 的理由不是"它更快"，而是：
+① 它是面向国内读者的公共 CDN（这正是它在国内被广泛用于 GitHub 静态资源的原因）；
+② **GitHub 自己渲染 README 时会把外链图片走 camo 代理**，所以 GitHub 上的显示与主机无关，
+真正在意主机可达性的只有 npm 包页面和市场站点——这两处的读者是同一批国内用户。
+另外**预热缓存**：jsDelivr 第一次拉未缓存文件可能超时，连续请求到 200 之后对所有访客都很快，
+改完图片路径就顺手把 6 个 URL 各打一遍。
 
 ### 发布进度（2026-10-08）
 

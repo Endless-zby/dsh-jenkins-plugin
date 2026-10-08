@@ -1,0 +1,44 @@
+# The three gates the release procedure documents, run on every push so a
+# regression is caught here rather than by someone installing the package.
+#
+# They are separate steps on purpose: a failing assertion, a credential-shaped
+# literal in a tracked file, and a missing build artifact in the published
+# payload are different problems, and the CI summary should say which one broke.
+name: check
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# A superseded push has nothing to say once a newer one is running.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+
+      # Node 24 is what the plugin is developed against; the test files are
+      # TypeScript run directly, which needs a Node that strips types.
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: npm
+
+      # --ignore-scripts: the package's own `prepare` would build, and esbuild's
+      # postinstall is unnecessary because the bundler binary is invoked directly.
+      - run: npm ci --ignore-scripts
+
+      # Host half to lib/, browser half to lib/client.js; the tests import the
+      # built JavaScript, so this has to come first.
+      - run: npm run build
+
+      - run: npm test
+      - run: npm run check:secrets
+      - run: npm run check:payload

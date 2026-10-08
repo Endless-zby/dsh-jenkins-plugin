@@ -1,5 +1,7 @@
 # dsh-jenkins-plugin
 
+[![check](https://img.shields.io/github/actions/workflow/status/Endless-zby/dsh-jenkins-plugin/ci.yml?branch=main&label=check)](https://github.com/Endless-zby/dsh-jenkins-plugin/actions/workflows/ci.yml)
+
 Jenkins integration for [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness): **a live build-progress panel in the Web GUI's right sidebar**, plus a set of model-facing Jenkins tools.
 
 Once installed you stop switching to the Jenkins page to watch a build: the jobs you follow become cards in the sidebar with a live progress bar, a notice when a build finishes, and — when a build fails — one button that hands the failure to the model for a diagnosis.

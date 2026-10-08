@@ -1,5 +1,7 @@
 # dsh-jenkins-plugin
 
+[![check](https://img.shields.io/github/actions/workflow/status/Endless-zby/dsh-jenkins-plugin/ci.yml?branch=main&label=check)](https://github.com/Endless-zby/dsh-jenkins-plugin/actions/workflows/ci.yml)
+
 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 的 Jenkins 插件：**Web GUI 右侧栏里的实时构建面板**，加上一组面向模型的 Jenkins 工具。
 
 装完之后，你不再需要为了看一次构建进度而切到 Jenkins 页面：关注的 job 变成侧栏里的卡片，进度条实时走，构建结束发通知，失败了一键交给模型分析原因。
