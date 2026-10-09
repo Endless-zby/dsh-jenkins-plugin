@@ -180,12 +180,77 @@ CI（`.github/workflows/ci.yml`）会在 push 后自动跑第 1 步的三道闸�
 
 ---
 
-## 8. 社区市场（只在首次收录或需要改元数据时做）
+## 8. 社区目录站收录（三个独立渠道，能多投就多投）
 
-| 市场 | 机制 | 动作 |
-|---|---|---|
-| `dsh-plugin.org`（DSH Plugin Hub） | 爬虫按 GitHub topic **`dsh-plugin`** 扫描；人工复核看 Issue | 仓库 About → 齿轮 → Topics 里必须有 `dsh-plugin`；提交用 `[插件提交] owner/repo — 一句话价值` 开 Issue |
-| `dsh-pluginmarket/metadata`（DSH Registry） | weekly 扫描器同样按 topic 自动开 `Add:` Issue；工作流校验后自动开 PR，维护者合并才发布 | 想快就自己用 **Add registry entry** 模板开 Issue（Kind/Name/GitHub repository/npm package/Description/Tags/Submitter），然后盯 PR 合并 |
+官方**发行**渠道只有一个：npm / git / `.tgz`（第 5 步）。下面是**社区目录站**，互相独立、
+各有各的入口与节奏：
+
+| 目录 / 应用 | 清单来源 | 怎么投 | 生效节奏 |
+|---|---|---|---|
+| **dshmarket 应用内市场** + awesome-dsh-plugin 站点 | `awesome-dsh-plugin/awesome-dsh-plugin` 的 `data/plugins/*.yml` | **一个插件一个 YAML 文件，开 PR 到上游**（见 §8.1） | 合并后 `main` 重新生成 README；站点/市场通常一天内 |
+| `dsh-plugin.org`（DSH Plugin Hub） | 爬虫按 GitHub topic **`dsh-plugin`** 扫描 + 人工复核 | 仓库有 topic 即可被扫到；想催就按模板开 Issue `[插件提交] owner/repo — 一句话价值` | 自述「每日」，未公布具体间隔 |
+| `dsh-pluginmarket/metadata`（DSH Registry） | 同一套 topic 扫描 + Issue Form | 用 **Add registry entry** 模板开 Issue（Kind/Name/GitHub repository/npm package/Description/Tags/Submitter），工作流自动开 PR | 维护者合并才发布（实测会长期 open） |
+
+### 8.1 awesome-dsh-plugin —— 市场应用真正读的那个（照这个做）
+
+`dsh-market`（应用内市场插件）的 README 写明：**「这个仓库是市场应用本身，不是插件目录」**，
+清单来自 `awesome-dsh-plugin`，要上架**去那边提 PR**。它的 `contributing.md` 规定：
+**两个 README 由脚本生成、不要手改**；投稿就是**新增一个文件**，路径
+`data/plugins/<owner>__<repo>.yml`（owner 与 repo 之间是**两个下划线**）。一个插件一个文件，
+所以永远不会和别人的 PR 冲突。
+
+文件内容（我们的实例）：
+
+```yaml
+url: https://github.com/Endless-zby/dsh-jenkins-plugin
+name: Endless-zby/dsh-jenkins-plugin
+category: dev
+description:
+  en: Jenkins CI integration with a live build-progress panel in the right sidebar, a multi-instance settings page, five model-facing tools (list jobs, build status, console log, workspace, trigger build), and a failure wake that hands a failed followed build to the conversation that followed it.
+  zh: Jenkins CI 集成：右侧栏实时构建进度面板、多实例设置页、五个面向模型的工具（列 job、构建状态、控制台日志、工作区、触发构建），以及构建失败时唤醒当初关注该 job 的那个会话。
+```
+
+**硬性要求**（CI 会自动查；提交前逐条自查）：
+
+| 要求 | 怎么确认 |
+|---|---|
+| `package.json` 声明 **`dsh.bundle`**（只声明 `dsh.client` **不可安装**，最常见被拒原因） | `node -e "console.log(require('./package.json').dsh.bundle)"` |
+| 仓库根有 `cordis.patch.yml` | 同目录 `Test-Path cordis.patch.yml` |
+| 仓库**创建满 1 天** | `curl -s https://api.github.com/repos/<owner>/<repo>` 看 `created_at` |
+| 有 **`dsh-plugin`** topic | 同上响应里的 `topics` |
+| 真实可用代码（占位 / 纯 README 不收） | —— |
+| `category` 取自固定集合 | `agi ui usage theme model identity session memory tools wsl browser vision voice docs skill git notify dev security remote market fun`（选不贴切不会被打回，维护者会改） |
+| 描述**属实**、无营销词 | 写数字 / 命令 / API 名之前先在代码里数一遍——夸大是主要打回原因 |
+
+**步骤**（三条直链，把 `<owner>` 换成你的账号）：
+
+1. **在正确路径新建文件** —— **从仓库根开始**，不要停在 `data/plugins/` 目录里：
+   `https://github.com/<owner>/awesome-dsh-plugin/new/main?filename=data/plugins/<owner>__<repo>.yml`
+   （`?filename=` 预填路径）→ 粘内容 → Commit。
+   *（或者：在 `data/plugins/` 目录页点新建，但文件名只写 `<owner>__<repo>.yml`。两种都行，别同时用。）*
+2. **开 PR 到上游**：base 必须是 `awesome-dsh-plugin/awesome-dsh-plugin:main`，head 是你 fork 的分支
+   （直接从 fork 的 `main` 提也可以）：
+   `https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/compare/main...<owner>:main?expand=1`
+3. 按 `.github/pull_request_template.md` 的复选框逐条勾（就是上表）→ **Create pull request**。
+
+**PR 会触发**：`pr-check` / `pr-gate` / `pr-guard`（校验 manifest、仓库年龄、YAML 格式、README 能否
+重新生成，并**列出本 PR 动到的既有条目**——所以只许动自己那一个文件）；合并后 `sync-readme` 在
+`main` 上重新生成两个 README，站点与应用内市场随后收录。
+
+**只在这个渠道出现的两个坑**（都踩过，详见 [AGENTS.md](AGENTS.md)）：
+
+1. **路径会重复一层**：在 `data/plugins/` 目录页点新建、文件名又写完整路径 → 落成
+   `data/plugins/data/plugins/<owner>__<repo>.yml`。YAML 内容全对、位置全错，CI 也不会报错。
+2. **PR 的 base 必须指向上游**：提成「自己的 fork ← 自己的分支」是 **fork 内部 PR**，合了也只进
+   自己的 fork（`search ... author:<owner>` 会是 0）。修法不是重做，而是拿同一个 commit 再开一个
+   base 指向上游的 PR。
+
+**可选加分**：截图不再放进 PR，而是**你自己仓库**里 `package.json` 旁的 `screenshots.json`
+（列出图片路径）——以后换图不必再提 PR。
+
+**我们的记录**：PR [#6942](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/6942)，
+单文件 `data/plugins/Endless-zby__dsh-jenkins-plugin.yml`（+6 行），base 指向上游、
+head 是 `Endless-zby/awesome-dsh-plugin:main`。
 
 收录之后把徽章加进 README 顶部（他们提交页给了模板）。
 
@@ -212,6 +277,9 @@ CI（`.github/workflows/ci.yml`）会在 push 后自动跑第 1 步的三道闸�
 | README 截图泄漏内部信息 | 用了真机截图 | 只用 stub 实例重截（清单见 AGENTS.md「README 截图必须先审计再提交」） |
 | CI 从来没跑过 | workflow 有 YAML 语法错 | `node .e2e/check-workflow.mjs` 先本地解析一遍 |
 | 市场搜不到 | 仓库缺 `dsh-plugin` topic | 加上 topic，再等一个扫描周期 |
+| 市场 PR 的内容明明是对的却没人理 | 路径重复了一层（`data/plugins/data/plugins/…`） | 从仓库根新建，或用 `?filename=` 直链 |
+| 开了 PR 但上游搜不到你的提交 | base 选成了自己的 fork（fork 内部 PR） | 用同一个 commit 重开一个 base 指向上游的 PR |
+| awesome-dsh-plugin 的 CI 卡住 | `dsh.bundle` 没声明，或仓库不满 1 天 | 两者都是 CI 自动查的；补上再提 |
 | `check:secrets` 报警 | 追踪文件里出现凭据形状 / 内网主机名 / 个人绝对路径 | 前者必须修；后两者是"要不要公开"的决定 |
 
 ## 只有人能做的三件事

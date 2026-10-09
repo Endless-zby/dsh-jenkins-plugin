@@ -318,18 +318,36 @@ node scripts/build-client.mjs                                    # 产物：lib/
 跑闸 → 定版 → 预检 → 打包实测 → 发布 → 注册表复验 → push → 市场 → 收尾，每步都写了
 "怎么确认成功"和失败处置。本节只记录**结论和坑**，命令细节不在这里重复（避免两处漂移）。
 
-**两条渠道，别混为一谈**：官方只有一个发行渠道——npm registry / git 仓库 / `.tgz`，用户在
+**发行渠道与目录站是两件事**：官方只有一个**发行**渠道——npm registry / git 仓库 / `.tgz`，用户在
 **Plugins 页面**或 `dsh plugin add` 安装（`packages/boot/plugin-manager` 只认这四种 spec，源码里
-**没有**第一方插件市场）。你听到的「插件市场」是社区目录站
-[dsh-plugin.org](https://dsh-plugin.org/zh/submit)（DSH Plugin Hub）与 dshbase.com 之类，站点自己声明
-与 DeepSeek 无隶属关系。
+**没有**第一方插件市场）。除此之外是**三个互相独立的社区目录站**，各有各的入口与节奏，
+**能多投就多投**，别把它们当成一回事：
+
+| 目录 / 应用 | 清单来源 | 怎么投 | 节奏 |
+|---|---|---|---|
+| **dshmarket 应用内市场** + awesome-dsh-plugin 站点 | `awesome-dsh-plugin/awesome-dsh-plugin` 的 `data/plugins/*.yml` | **一个插件一个 YAML 文件，开 PR 到上游** | 合并后 `main` 上重新生成 README；站点/市场通常一天内 |
+| `dsh-plugin.org`（DSH Plugin Hub） | 爬虫按 topic `dsh-plugin` 扫描 + 人工复核 | 有 topic 即被扫；想催就按它的模板开 Issue，收录后先 `unconfirmed` 再 `verified` | 自述「每日」，未公布具体间隔 |
+| `dsh-pluginmarket/metadata`（DSH Registry） | 同一套 topic 扫描 + Issue Form | **Add registry entry** Issue → 工作流自动开 `entries/*.json` 的 PR | 维护者合并才发布（实测会长期 open） |
+
+**`dsh-market` 的 README 自己写明「这个仓库是市场应用本身，不是插件目录」**——应用内市场的清单来自
+`awesome-dsh-plugin`，要上架**必须去那边提 PR**。所以只投 dsh-plugin.org / metadata **不够**，
+而这条我们一开始漏了（2026-10-09 才发现并补投）。**投稿只有两个坑，但都是真坑**：
+① 在 `data/plugins/` 目录页里点新建、文件名又写完整路径 → 落成
+`data/plugins/data/plugins/<owner>__<repo>.yml`（**内容全对、位置全错**，CI 也不会告诉你）；
+② PR 的 base 选成自己的 fork → 那是 **fork 内部 PR**，合了也只进自己的 fork，上游一个字节都收不到
+（`search ... author:<owner>` 会是 0）。可照做的三条直链见 [RELEASING.md](RELEASING.md) §8.1。
 
 已核实的发布事实：
 
 - `dsh-jenkins-plugin` 这个 npm 名**没被占用**（`registry.npmjs.org/dsh-jenkins-plugin` → 404）。
-- 社区市场的收录条件（站点原文）：**公开** GitHub 仓库 + 仓库 topic 加 **`dsh-plugin`** +
-  README 含安装命令（`dsh plugin --profile web add <包名>`）+ 插件导出 **`apply(ctx)`** + 不冒充官方；
-  靠自动扫描收录，提交入口是按它的模板开一个 Issue，收录后先 `unconfirmed`、人工核实后 `verified`。
+- **`awesome-dsh-plugin` 的硬要求**（`contributing.md` 原文 + CI 自动查）：`package.json` 必须声明
+  **`dsh.bundle`**（只声明 `dsh.client` 的**不可安装**，这是最常见的被拒原因）、仓库根有
+  `cordis.patch.yml`、仓库**创建满 1 天**、有 `dsh-plugin` topic、`category` 从固定集合里挑
+  （`agi ui usage theme model identity session memory tools wsl browser vision voice docs skill git
+  notify dev security remote market fun`，选不贴切不会被打回）、描述**必须属实**（评审对着代码核，
+  夸大是主要打回原因）。**两个 README 是生成的，别手改**，投稿就是新增那一个文件。
+- 社区目录站的通用收录条件（dsh-plugin.org 原文）：**公开** GitHub 仓库 + topic **`dsh-plugin`** +
+  README 含安装命令（`dsh plugin --profile web add <包名>`）+ 导出 **`apply(ctx)`** + 不冒充官方。
 - git 安装拉的是**源码不是产物**：`package.json` 的 `prepare` 必须能独立构建
   （已配 `"prepare": "npm run build"`），装的人还要在 profile 的 `pnpm-workspace.yaml` 里
   `allowBuilds: dsh-jenkins-plugin: true`。npm 与 tarball 都不需要这一步。
@@ -445,8 +463,21 @@ README 图片必须用**绝对 URL**（相对路径会在两处各坏一次：np
 - **仓库 / 市场**：`Endless-zby/dsh-jenkins-plugin`（public，默认分支 `main`）。用
   `.e2e/check-github.mjs`（走 `api.github.com`，因为 `github.com` 从这台机器不可达）核对过：
   `main` 上有全部提交（最新 `b0d982f`）、`v0.1.0` tag 在、**`topics: ["dsh-plugin"]`**、
-  `doc/` 里 7 张图（字节数与本地一致）、License 识别为 MIT。市场收录的四个条件因此全部满足
-  （公开仓库 + topic + README 安装命令 + 导出 `apply(ctx)`），提交的 Issue 可以进入扫描周期。
+  `doc/` 里 7 张图（字节数与本地一致）、License 识别为 MIT。
+- **`awesome-dsh-plugin` PR（这条才是市场应用读的清单）**：
+  [awesome-dsh-plugin#6942](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/6942)
+  —— 2026-10-09 开，单文件 `data/plugins/Endless-zby__dsh-jenkins-plugin.yml`（+6 行），
+  base 指向上游 `main`、head 是 `Endless-zby/awesome-dsh-plugin:main`。**踩过两次**：
+  先在 `data/plugins/` 目录页新建又填完整路径 → 落成 `data/plugins/data/plugins/…`（内容对、位置错）；
+  接着那个 PR 的 base 选成了自己的 fork（fork 内部 PR，上游收不到）。格式、硬要求与三条直链见
+  [RELEASING.md](RELEASING.md) §8.1。
+- **另两个目录站（与上面互相独立）**：`dsh-pluginmarket/metadata` 的 PR #5551 仍是 open
+  （`mergeable=clean`，`entries/github_Endless-zby_dsh-jenkins-plugin.json` 未上 `main`）；
+  dsh-plugin.org 靠 topic 自动扫描（按模板开的 Issue），详情页
+  `/plugins/Endless-zby/dsh-jenkins-plugin` 实测仍是 404。
+- **`dsh-plugin.org` / metadata 的「通用四条件」**都满足（公开仓库 + topic `dsh-plugin` +
+  README 安装命令 + 导出 `apply(ctx)`）；`awesome-dsh-plugin` 另加的两条（`dsh.bundle`、
+  仓库满 1 天）在 2026-10-09 核过：`dsh.bundle={"patch":"./cordis.patch.yml"}`、仓库已 30.8 小时。
 - **截图**：README 用了 5 张，`doc/` 里另有 2 张留档 —— 见上节"README 截图必须先审计再提交"的清单。
   真机那四张是仓库所有者的决定（照原样使用），我把审计结论留档、没有替换它们；
   `settings-instances-first.png` 是第一版设置页，与重截后的 `settings-instances.png` 并存，避免丢内容。
