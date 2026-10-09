@@ -245,8 +245,12 @@ description:
    自己的 fork（`search ... author:<owner>` 会是 0）。修法不是重做，而是拿同一个 commit 再开一个
    base 指向上游的 PR。
 
-**可选加分**：截图不再放进 PR，而是**你自己仓库**里 `package.json` 旁的 `screenshots.json`
-（列出图片路径）——以后换图不必再提 PR。
+**截图（2026-10-09 已声明）**：截图不放进投稿 PR，而是放在**你自己仓库**里 `package.json` 旁的
+`screenshots.json` —— 1–8 张、路径**相对该文件**、不能以 `/` 开头或含 `..`，推自己的仓库即生效
+（下一次构建自动抓，不用再来提 PR）。本仓库声明的就是 README 里那 6 张（顺序一致）；
+**故意不列 `doc/settings-instances-first.png`** —— 那是第一版设置页的留档图，
+审计清单（见 [AGENTS.md](AGENTS.md)）里记着它含内网 URL 与真人姓名，不该主动陈列到市场详情页。
+不声明也没关系：市场会退化成从 README 自动抽取，声明只是为了控制顺序与取舍。
 
 **我们的记录**：PR [#6942](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/6942)，
 单文件 `data/plugins/Endless-zby__dsh-jenkins-plugin.yml`（+6 行），base 指向上游、
