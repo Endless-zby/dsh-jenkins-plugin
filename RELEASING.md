@@ -154,6 +154,18 @@ node $bin plugin --profile pubreg add dsh-jenkins-plugin
 #   与注册表的 dist.integrity 是否一致（一致 = 装到的就是发布的字节）
 ```
 
+### 市场目录的刷新时序（2026-10-28 实测）
+
+市场应用读的是 npm 包 `dsh-plugin-catalog` 的 `index.json`，它**不是实时 npm**：`awesome-dsh-plugin`
+的 `build-site.yml` **只在每天 02:23 UTC 的定时构建（或维护者手动 workflow_dispatch）里**重新 probe
+npm 并发布新目录；push 触发的构建不 probe、也不发布目录。完整一轮约 2 小时，所以新目录通常在
+**04:20–04:40 UTC** 出现在 npm 上。
+
+推论（踩过）：**`npm publish` 若晚于当天 02:23–02:30 UTC 的 probe，就赶不上当天快照**——即使 npm
+已经是新版，市场里仍会显示上一个版本（甚至显示"不兼容"），并要等约 24 小时后的下一轮。想当天生效
+只有两条路：① 发布赶在 02:20 UTC 之前；② 请维护者手动 dispatch 一次 `build-site.yml`。否则直接用
+`dsh plugin add <包名>@<ver>` 安装即可，**别把市场索引当成发布是否成功的判据**。
+
 ---
 
 ## 7. 推到 GitHub
