@@ -440,12 +440,12 @@ README 图片必须用**绝对 URL**（相对路径会在两处各坏一次：np
 另外**预热缓存**：jsDelivr 第一次拉未缓存文件可能超时，连续请求到 200 之后对所有访客都很快，
 改完图片路径就顺手把 6 个 URL 各打一遍。
 
-### 发布进度（2026-10-08）
+### 发布进度（2026-10-08，2026-10-28 补记）
 
-- **npm：`dsh-jenkins-plugin@0.1.1` 是当前 latest**（2026-10-08T03:10:01Z 上线；`0.1.0` 仍在版本列表里）。
-  0.1.1 只改了打包进 npm 的 README：图片换成能解析的主机、并带上全部 6 张引用。
-  实测核对（`.e2e/verify-publish.mjs 0.1.1`）：`latest=0.1.1`、tarball 200、README 里
-  `cdn.jsdelivr.net` 6 处 / `raw.githubusercontent` 0 处、54 个文件。
+- **0.2.0 是当前 latest**（2026-10-28 发布，仅支持 DSH ≥0.2.1-rc.3；tag/commit 已推送、CI 绿）。
+  市场目录 `dsh-plugin-catalog` 每日重建，重建后才会列出 0.2.0。
+- **0.1.1 曾是 latest**（2026-10-08 上线；只改了 npm README 的图片主机）。
+  实测核对：`latest=0.1.1`、tarball 200、README 图片主机为 jsDelivr、54 个文件。
   **发布成功后有几 minutes 的异步生成期**：packument 里已经有版本、`dist.tarball` 却是 404，
   npm 会打印 `Your package is being processed and may take a few minutes to become available.`
   ——**别在这几分钟内判断失败**（我差点去 unpublish 重发；而 unpublish 之后 24 小时内不能重发同一版本，
