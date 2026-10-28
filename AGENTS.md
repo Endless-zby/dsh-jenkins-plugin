@@ -50,7 +50,8 @@ DeepSeek Harness 的 Jenkins 插件：Web GUI 里的实时构建进度面板 + �
   `followupFor(ctx, sessionId)` 返回 `ok | no-service | no-session` 三态，**故意区分**——
   组合里没有 agent 运行时（503）与"这个会话没有活着的 agent"（409）是两件事，路由据此给出不同状态；
   watcher 只关心 `ok`，其余静默跳过。消息用 `createUserMessage` 构造并打上
-  `source: {kind:'plugin', plugin:'jenkins-plugin'}`；手搓消息形状正是最容易和平台漂开的东西。
+  `source: {kind:'jenkins-plugin'}`——0.2.x 没有共享的 `plugin` 来源 kind，本插件在自己的模块里
+  用 declaration merging 声明这一个（见下「0.2.x 迁移」）；手搓消息形状正是最容易和平台漂开的东西。
 - `src/tools/builds.ts` — 四个工具：`jenkins_build_status`、`jenkins_log`、`jenkins_workspace`、
   **`jenkins_build`**（唯一的写工具；触发后会 `tracker.trackQueue()`，所以**模型触发的构建也会自己
   出现在面板上**，对应 SPEC §10 验收第 1 条）。
@@ -515,9 +516,19 @@ README 图片必须用**绝对 URL**（相对路径会在两处各坏一次：np
 
 ## 运行与验证环境（已探明，别再重新摸一遍）
 
+### 0.2.x 迁移（市场不兼容问题的修复）
+
+根因：`engines.dsh` 写成精确版本；DSH 用 `semver.satisfies(runtime, engines.dsh,
+{ includePrerelease: true })` 判定，**有 `engines.dsh` 时 peerDependencies 不参与**。
+约定：`engines.dsh` = `>=0.2.1-rc.3 <0.3.0-0`（`-0` 排除 `0.3.0-alpha`），peer `^0.2.1-rc.3`、
+dev `0.2.1-rc.3`，**别再写精确版本**。`MessageSourceMap` 是 merge-extensible 的，0.2.x 没有共享
+`plugin` kind；`src/handoff.ts` 用 declaration merging 声明 `'jenkins-plugin'`。boot row、
+模块表基线、`agents.get/followup`、`jobs.start`、`approval.request` 形状已核对未变。
+
 - **PATH 上没有 `dsh`**，也没有可用的全局安装。已验证可行的取法：装进仓库内的隔离目录
-  `npm install --prefix .e2e --ignore-scripts --cache .npm-cache @deepseek-ai/dsh@0.1.6-alpha.2`，
-  然后 `node .e2e/node_modules/@deepseek-ai/dsh/lib/bin.js ...`。`.e2e/` 已被 `.gitignore` 忽略。
+  `npm install --prefix .e2e --ignore-scripts --cache .npm-cache @deepseek-ai/dsh@0.2.1-rc.3`，
+  然后 `node .e2e/node_modules/@deepseek-ai/dsh/lib/bin.js ...`。`.e2e/` 已被 `.gitignore` 忽略
+  （版本须与 `engines.dsh` 对齐）。
 - **`dsh plugin ...` 必须能 spawn pnpm**：`plugin` 子命令只是把参数转发给 pnpm（`pnpm-runner`）。
   受限沙箱下 pnpm 会 `spawn EPERM`；本机 pnpm 是桌面版的 `harness/.desktop-bin/pnpm.cmd` 包装。
   该命令需要放宽文件沙箱（会写用户级 pnpm store）。

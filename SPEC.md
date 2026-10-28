@@ -282,7 +282,7 @@ Host 注册同源 HTTP 路由（`/jenkins-plugin/*`），每个 handler 先调 `
 | 项 | 说明 |
 |---|---|
 | 包名与 npm scope | 独立发布需确定包名（如 `dsh-jenkins-plugin` 或 `<scope>/dsh-jenkins`） |
-| 依赖版本对齐 | 本机 dsh 为 `0.1.6-alpha.2`，npm 上 `@deepseek-ai/dsh-*` 最新为 `0.1.7-rc.1`；需锁定与安装目标一致的版本 |
+| 依赖版本对齐 | 构建/验证目标为 `0.2.1-rc.3`；`engines.dsh` 接受 `>=0.2.1-rc.3 <0.3.0-0`，peer/dev 依赖用 `^0.2.1-rc.3`。`0.1.6-alpha.2` 是历史目标，已不支持 |
 | 阶段级日志切片 | 依赖 Blue Ocean REST，接口稳定性需实测后决定是否提前到 P0 |
 | 跟踪持久化 | 是否用 domain KV storage 实现自动恢复（当前 P0 为手动重新附着） |
 | 独立仓库位置 | 插件代码放在本仓库还是独立仓库 |

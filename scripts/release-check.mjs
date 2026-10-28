@@ -4,9 +4,10 @@
  * Every check here is one of the ways a release has actually gone wrong or
  * nearly did: publishing from a dirty tree (so the tarball does not match any
  * commit), reusing a tag, re-publishing a version the registry already has,
- * shipping a manifest that is not a bundle, or shipping a `lib/client.js` that
- * the module table will reject. None of these is visible from `npm publish`
- * succeeding.
+ * shipping a manifest that is not a bundle, pinning `engines.dsh` to the one
+ * runtime the plugin was built on (the market then rejects it after every DSH
+ * upgrade), or shipping a `lib/client.js` that the module table will reject.
+ * None of these is visible from `npm publish` succeeding.
  *
  * It only reads and reports: publishing needs credentials and is done by hand.
  *
@@ -62,6 +63,11 @@ console.log('\n3) the manifest is a publishable bundle')
 check('package.json does not set private', manifest.private !== true, manifest.private === true ? 'private: true blocks npm publish' : 'publishable')
 check('dsh.bundle.patch is declared', manifest.dsh?.bundle?.patch !== undefined, manifest.dsh?.bundle?.patch ?? 'missing — dsh would install it as a plain dependency')
 check('dsh.client.platform is declared', manifest.dsh?.client?.platform !== undefined, manifest.dsh?.client?.platform ?? 'missing — the browser half would never load')
+// A pinned engines.dsh is what made the market reject the plugin as soon as the
+// runtime moved on: dsh compares the running version against this exact string.
+const dshRange = manifest.engines?.dsh ?? ''
+const builtAgainst = manifest.devDependencies?.['@deepseek-ai/dsh-tools'] ?? 'unknown'
+check('engines.dsh is a range over the built-against harness, not a pinned version', /[<>=^~*|x]/.test(dshRange) && dshRange !== builtAgainst, dshRange === '' ? 'missing — dsh would decide from peer dependencies' : `${dshRange} (built against ${builtAgainst})`)
 check('the install command this release advertises is in the README', readFileSync('README.md', 'utf8').includes(`dsh plugin --profile web add ${manifest.name}`), `dsh plugin --profile web add ${manifest.name}`)
 
 console.log('\n4) the artifacts that will be packed are built and current')

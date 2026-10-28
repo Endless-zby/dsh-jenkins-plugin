@@ -17,6 +17,22 @@
 import type { Context } from '@deepseek-ai/cordis'
 import { createUserMessage } from '@deepseek-ai/dsh-llm'
 
+/**
+ * Declare this plugin's own message provenance kind.
+ *
+ * The harness has no shared catch-all `plugin` source kind: each producer
+ * declares its own `kind` in its own module, and consumers fall through kinds
+ * they do not know. Declaring one keeps the conversation able to tell a
+ * Jenkins-plugin message apart from something the operator typed, without
+ * pretending to be `user`.
+ */
+declare module '@deepseek-ai/dsh-llm' {
+  interface MessageSourceMap {
+    /** A message the Jenkins plugin authored for a conversation it was asked to wake. */
+    'jenkins-plugin': { kind: 'jenkins-plugin' }
+  }
+}
+
 /** The part of one agent this plugin uses. */
 export interface AgentLike {
   /** Queue a message in this agent's conversation. */
@@ -37,9 +53,6 @@ export interface AgentService {
    */
   get(sessionId: string): AgentLike | undefined
 }
-
-/** How the plugin names itself in a message's provenance. */
-const PLUGIN_ID = 'jenkins-plugin'
 
 /** Whether a session can be reached, and how. */
 export type FollowupLookup =
@@ -69,7 +82,7 @@ export function followupFor(ctx: Context, sessionId: string): FollowupLookup {
         content: [{ type: 'text', text: prompt }],
         // Tagged as this plugin's own message, so the conversation shows where
         // it came from and the model can tell it apart from the operator.
-        source: { kind: 'plugin', plugin: PLUGIN_ID },
+        source: { kind: 'jenkins-plugin' },
       }))
     },
   }

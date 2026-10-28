@@ -94,7 +94,7 @@ allowBuilds:
 
 ## 兼容性
 
-- **Harness**：针对 `0.1.6-alpha.2` 构建并验证（`package.json` 的 `engines.dsh` 与 peerDependencies 都钉在这个版本）。
+- **Harness**：针对 `0.2.1-rc.3` 构建并验证。`engines.dsh` 接受 `0.2.1-rc.3` 及后续 `0.2.x`（`>=0.2.1-rc.3 <0.3.0-0`），`@deepseek-ai/dsh-*` 的 peerDependencies 用 `^0.2.1-rc.3`。**不再支持**旧 `0.1.x` 线：插件使用的 harness API 在其间有变化。
 - **Node**：与 harness 一致，`^22.19.0 || >=24.0.0`。
 - **载体**：面板是 Web GUI 的界面（`dsh web`），在 Web 组合上验证过。
 - **Jenkins**：在 **Jenkins 2.176.2** 上实测（FreeStyle 与 Maven job，777 个 job 的实例）。几条如实降级：

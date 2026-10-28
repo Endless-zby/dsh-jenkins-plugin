@@ -81,6 +81,9 @@ npm run release:check
 - 工作区干净（否则 tarball 不对应任何提交）
 - `v<version>` tag 未被占用、该版本**未在注册表上存在**（防重复发布）
 - `package.json` 可发布（没有 `private`）、`dsh.bundle.patch` 与 `dsh.client.platform` 都在
+- **`engines.dsh` 是范围而不是精确版本**（例如 `>=0.2.1-rc.3 <0.3.0-0`）。市场安装时 dsh 用运行版本
+  做 `semver.satisfies(runtime, engines.dsh, { includePrerelease: true })`，且**有 `engines.dsh` 时
+  peerDependencies 不参与**——钉死一个版本，DSH 一升级就会被市场判成「不兼容」（2026-10-27 的真实事故）。
 - README 里确实有安装命令
 - `package-lock.json` 的版本一致、`lib/index.js` 与 `lib/client.js` 是**新构建**的
   （`lib/client.js` 比 `src/client/**` 任何文件都新）

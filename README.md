@@ -94,7 +94,7 @@ Please take these as read before installing:
 
 ## Compatibility
 
-- **Harness**: built and verified against `0.1.6-alpha.2` (both `engines.dsh` and the peer dependencies pin that version).
+- **Harness**: built and verified against `0.2.1-rc.3`. `engines.dsh` accepts the `0.2.1-rc.3` line and later `0.2.x` releases (`>=0.2.1-rc.3 <0.3.0-0`), and the `@deepseek-ai/dsh-*` peer dependencies use `^0.2.1-rc.3`. Older harness lines (`0.1.x`) are **not** supported: the plugin uses harness APIs that changed between them.
 - **Node**: matches the harness, `^22.19.0 || >=24.0.0`.
 - **Surface**: the panel is a Web GUI surface (`dsh web`), verified on the Web composition.
 - **Jenkins**: verified against a real **Jenkins 2.176.2** (FreeStyle and Maven jobs, an instance with 777 jobs). Several honest degradations:
